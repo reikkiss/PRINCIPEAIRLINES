@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .font-display {
+    font-family: 'Bodoni Moda', 'Playfair Display', Georgia, serif;
+  }
+  .font-script {
+    font-family: 'Italianno', 'Alex Brush', cursive;
+  }
+  .font-sans-body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+  .font-monospace {
+    font-family: 'Space Mono', monospace;
+  }
+}
+
+/* Custom scrollbar and subtle page transitions */
+html {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  background-color: #0015ff; /* Outer window color */
+}
+
+/* Smooth drag cursor */
+.cursor-grab:active {
+  cursor: grabbing;
+}
+
+/* Prevent unwanted layout shifts */
+body {
+  overflow-x: hidden;
+}
