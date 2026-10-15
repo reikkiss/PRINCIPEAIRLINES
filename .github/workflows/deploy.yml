@@ -2,22 +2,18 @@ name: Deploy Vite to GitHub Pages
 
 on:
   push:
-  # O si prefieres que solo se ejecute cuando hagas push a la rama main/master:
-  # branches: [ "main" ]
+    branches: [ "main" ] # O cámbialo a tu rama principal si usas otra
 
-  # Permite ejecutarlo manualmente desde la pestaña "Actions" en GitHub
   workflow_dispatch:
 
-# Permisos necesarios para publicar en GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Solo permite un despliegue concurrente
 concurrency:
   group: "pages"
-  cancel-in-running: true
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -50,7 +46,7 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: monte
+    runs-on: ubuntu-latest
     needs: build
     steps:
       - name: Deploy to GitHub Pages
