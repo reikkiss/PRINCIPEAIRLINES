@@ -6,7 +6,7 @@ import {defineConfig} from 'vite';
 export default defineConfig(() => {
   return {
     // 👈 Agrega esta línea con el nombre exacto de tu repo en GitHub (incluyendo las barras)
-    base: '/nombre-de-tu-repositorio/', 
+base: '/PRINCIPEAIRLINES/',
 
     plugins: [react(), tailwindcss()],
     resolve: {
