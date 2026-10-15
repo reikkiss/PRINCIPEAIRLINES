@@ -18,17 +18,19 @@ import {
   CheckCircle2,
   Mail,
   MapPin,
-  Heart
+  Heart,
+  Sparkles
 } from 'lucide-react';
 
 interface TicketManagerPageProps {
   tickets: BoardingTicket[];
   destinations: DestinationItem[];
   letters: TravelLetter[];
+  heroImage?: string;
+  onUpdateHeroImage?: (imageUrl: string) => void;
   onAddTicket: (ticket: BoardingTicket) => void;
   onUpdateTicket: (ticket: BoardingTicket) => void;
   onDeleteTicket: (ticketId: string) => void;
-  onResetTickets: () => void;
   onSelectTicketFor3D: (ticket: BoardingTicket) => void;
   onOpenUploadModal: (prefill?: Partial<BoardingTicket>) => void;
   onToggleDestination: (destId: string) => void;
@@ -47,9 +49,10 @@ export const TicketManagerPage: React.FC<TicketManagerPageProps> = ({
   tickets,
   destinations,
   letters,
+  heroImage,
+  onUpdateHeroImage,
   onAddTicket,
   onDeleteTicket,
-  onResetTickets,
   onSelectTicketFor3D,
   onOpenUploadModal,
   onToggleDestination,
@@ -62,7 +65,7 @@ export const TicketManagerPage: React.FC<TicketManagerPageProps> = ({
   onBackToMain,
   onLockSession,
 }) => {
-  const [activeTab, setActiveTab] = useState<'tickets' | 'destinations' | 'letters'>('tickets');
+  const [activeTab, setActiveTab] = useState<'tickets' | 'destinations' | 'letters' | 'portada'>('tickets');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [batchUploadNotice, setBatchUploadNotice] = useState<string | null>(null);
@@ -188,7 +191,7 @@ export const TicketManagerPage: React.FC<TicketManagerPageProps> = ({
             onClick={() => setActiveTab('tickets')}
             className={`px-4 py-2 rounded-lg font-mono text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
               activeTab === 'tickets'
-                ? 'bg-[#0015ff] text-white shadow-md'
+                ? 'bg-[#0E2340] text-white shadow-md'
                 : 'bg-neutral-200 hover:bg-neutral-300 text-neutral-800'
             }`}
           >
@@ -200,7 +203,7 @@ export const TicketManagerPage: React.FC<TicketManagerPageProps> = ({
             onClick={() => setActiveTab('letters')}
             className={`px-4 py-2 rounded-lg font-mono text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'letters'
-                ? 'bg-rose-600 text-white shadow-md'
+                ? 'bg-[#E05A36] text-white shadow-md'
                 : 'bg-neutral-200 hover:bg-neutral-300 text-neutral-800'
             }`}
           >
@@ -213,11 +216,24 @@ export const TicketManagerPage: React.FC<TicketManagerPageProps> = ({
             onClick={() => setActiveTab('destinations')}
             className={`px-4 py-2 rounded-lg font-mono text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
               activeTab === 'destinations'
-                ? 'bg-[#0015ff] text-white shadow-md'
+                ? 'bg-[#0E2340] text-white shadow-md'
                 : 'bg-neutral-200 hover:bg-neutral-300 text-neutral-800'
             }`}
           >
             Ciudades & Destinos ({destinations.length})
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('portada')}
+            className={`px-4 py-2 rounded-lg font-mono text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'portada'
+                ? 'bg-[#F4A62A] text-[#0E2340] shadow-md font-black'
+                : 'bg-neutral-200 hover:bg-neutral-300 text-neutral-800'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Foto de Portada</span>
           </button>
         </div>
 
@@ -226,9 +242,9 @@ export const TicketManagerPage: React.FC<TicketManagerPageProps> = ({
           <>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-neutral-200">
               <div>
-                <div className="text-xs font-mono font-bold text-[#0015ff] uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                  <Layers className="w-4 h-4" />
-                  <span>PANEL DE CONTROL DE BOLETOS</span>
+                <div className="text-xs font-mono font-bold text-[#0E2340] uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                  <Layers className="w-4 h-4 text-amber-500" />
+                  <span>PRINCIPE AIRLINES · PANEL DE CONTROL DE BOLETOS</span>
                 </div>
                 <h1 className="text-2xl sm:text-4xl font-black font-display tracking-tight text-neutral-900">
                   Subir Fotos y Editar Información
@@ -261,20 +277,13 @@ export const TicketManagerPage: React.FC<TicketManagerPageProps> = ({
                 <button
                   type="button"
                   onClick={() => onOpenUploadModal()}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#0015ff] hover:bg-[#0022ff] text-white font-mono font-bold text-xs uppercase tracking-wider rounded-lg transition-all shadow-md cursor-pointer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#E05A36] hover:bg-[#C84B2B] text-white font-mono font-bold text-xs uppercase tracking-wider rounded-lg transition-all shadow-md cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
                   <span>+ Crear Boleto</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={onResetTickets}
-                  title="Restaurar a los boletos iniciales de la campaña"
-                  className="p-2.5 bg-neutral-200 hover:bg-neutral-300 text-neutral-700 rounded-lg transition-colors cursor-pointer"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                </button>
+
               </div>
             </div>
 
@@ -287,9 +296,9 @@ export const TicketManagerPage: React.FC<TicketManagerPageProps> = ({
 
             <div
               onClick={() => batchInputRef.current?.click()}
-              className="my-6 p-6 border-2 border-dashed border-neutral-300 hover:border-[#0015ff] bg-white rounded-xl text-center cursor-pointer transition-colors group shadow-sm"
+              className="my-6 p-6 border-2 border-dashed border-neutral-300 hover:border-[#E05A36] bg-white rounded-xl text-center cursor-pointer transition-colors group shadow-sm"
             >
-              <Upload className="w-10 h-10 mx-auto text-[#0015ff] mb-2 group-hover:scale-110 transition-transform" />
+              <Upload className="w-10 h-10 mx-auto text-[#E05A36] mb-2 group-hover:scale-110 transition-transform" />
               <h3 className="text-base font-bold text-neutral-900 font-display">
                 Subir Múltiples Imágenes para Nuevos Boletos
               </h3>
@@ -497,8 +506,110 @@ export const TicketManagerPage: React.FC<TicketManagerPageProps> = ({
               }
               onAddDestination={onAddDestination}
               onDeleteDestination={onDeleteDestination}
-              allowEdit={true}
             />
+          </div>
+        )}
+
+        {/* TAB 4: HERO PORTADA */}
+        {activeTab === 'portada' && (
+          <div className="space-y-6">
+            <div className="pb-6 border-b border-neutral-200">
+              <div className="text-xs font-mono font-bold text-[#E05A36] uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                <span>PRINCIPE AIRLINES · FOTO DE PORTADA PRINCIPAL</span>
+              </div>
+              <h1 className="text-2xl sm:text-4xl font-black font-display tracking-tight text-neutral-900">
+                Ajustar Imagen de Portada Hero
+              </h1>
+              <p className="text-sm text-neutral-600 mt-1 max-w-2xl font-sans">
+                Personaliza la imagen principal que da la bienvenida a tu novio. Puedes subir una foto personal de ustedes juntos, pegar un enlace de imagen o restaurar la colección estética de papelería mediterránea.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+              {/* Preview */}
+              <div className="bg-white p-4 rounded-2xl border-2 border-neutral-300 shadow-sm">
+                <span className="text-xs font-mono text-neutral-500 uppercase tracking-wider block mb-2 font-bold">
+                  Vista Previa Actual
+                </span>
+                <div className="relative aspect-[16/9] rounded-xl overflow-hidden border-2 border-white shadow-md bg-neutral-900">
+                  <img
+                    src={heroImage || '/src/assets/images/mediterranean_love_stationery_1792013872743.jpg'}
+                    alt="Portada Hero"
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+              </div>
+
+              {/* Upload Controls */}
+              <div className="space-y-5 bg-white p-6 rounded-2xl border border-neutral-300 shadow-sm">
+                <div>
+                  <label className="text-xs font-mono font-bold uppercase tracking-wider text-neutral-700 block mb-2">
+                    Subir Foto desde tu Dispositivo
+                  </label>
+                  <label className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#E05A36] hover:bg-[#C84B2B] text-white rounded-lg font-mono text-xs font-bold uppercase tracking-wider transition-all cursor-pointer shadow">
+                    <Upload className="w-4 h-4 text-amber-300" />
+                    <span>Seleccionar Nueva Foto</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (ev) => {
+                            if (ev.target?.result && onUpdateHeroImage) {
+                              onUpdateHeroImage(ev.target.result as string);
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                  <p className="text-[11px] text-neutral-500 mt-1 font-mono">
+                    Formatos recomendados: JPG, PNG o WEBP.
+                  </p>
+                </div>
+
+                <div className="pt-4 border-t border-neutral-200">
+                  <label className="text-xs font-mono font-bold uppercase tracking-wider text-neutral-700 block mb-2">
+                    O Ingresar Enlace de Imagen (URL)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="https://..."
+                      defaultValue={heroImage || ''}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const val = (e.target as HTMLInputElement).value;
+                          if (val && onUpdateHeroImage) onUpdateHeroImage(val);
+                        }
+                      }}
+                      className="flex-1 px-3 py-2 border border-neutral-300 rounded-lg text-xs font-mono focus:outline-none focus:border-[#E05A36]"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-neutral-200">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onUpdateHeroImage) {
+                        onUpdateHeroImage('/src/assets/images/mediterranean_love_stationery_1792013872743.jpg');
+                      }
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 rounded-lg font-mono text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer border border-neutral-300"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Restaurar Imagen de Colección Mediterránea</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

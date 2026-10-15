@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React, { useState, useEffect } from 'react';
 import { Hero } from './components/Hero';
 import { TicketCarousel3D } from './components/TicketCarousel3D';
@@ -19,6 +14,8 @@ import { INITIAL_DESTINATIONS } from './data/destinationsData';
 import { INITIAL_LETTERS } from './data/lettersData';
 import { BoardingTicket, DestinationItem, TravelLetter } from './types';
 import { Lock, Unlock } from 'lucide-react';
+import { db } from './firebase';
+import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
 
 export default function App() {
   // Page state: 'main' showcase page vs separate 'manager' page
@@ -34,52 +31,47 @@ export default function App() {
   });
   const [isLockModalOpen, setIsLockModalOpen] = useState<boolean>(false);
 
-  // Tickets state with LocalStorage persistence and automatic carrier migration
-  const [tickets, setTickets] = useState<BoardingTicket[]>(() => {
-    try {
-      const saved = localStorage.getItem('versal_tickets');
-      if (saved) {
-        const parsed: BoardingTicket[] = JSON.parse(saved);
-        // Automatically migrate any old 'SINGAPORE AIRLINES' to 'PRINCIPE AILINES'
-        return parsed.map((t) => ({
-          ...t,
-          carrierName:
-            !t.carrierName ||
-            t.carrierName === 'SINGAPORE AIRLINES' ||
-            t.carrierName === 'PRINCIPE AILINES'
-              ? 'PRINCIPE AIRLINES'
-              : t.carrierName,
-          flightNumber: t.flightNumber?.replace(/^SQ/, 'PA') || 'PA286',
-        }));
-      }
-    } catch (e) {
-      console.error('Error loading tickets from localStorage', e);
-    }
-    return INITIAL_TICKETS;
-  });
+  // Tickets state with Firestore persistence
+  const [tickets, setTickets] = useState<BoardingTicket[]>([]);
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'tickets'), (snapshot) => {
+      const data = snapshot.docs.map(doc => doc.data() as BoardingTicket);
+      setTickets(data.length > 0 ? data : INITIAL_TICKETS);
+    });
+    return unsub;
+  }, []);
 
-  // Destinations state with LocalStorage persistence
-  const [destinations, setDestinations] = useState<DestinationItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('versal_destinations');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error('Error loading destinations from localStorage', e);
-    }
-    return INITIAL_DESTINATIONS;
-  });
+  // Destinations state with Firestore persistence
+  const [destinations, setDestinations] = useState<DestinationItem[]>([]);
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'destinations'), (snapshot) => {
+      const data = snapshot.docs.map(doc => doc.data() as DestinationItem);
+      setDestinations(data.length > 0 ? data : INITIAL_DESTINATIONS);
+    });
+    return unsub;
+  }, []);
 
-  // Letters state with LocalStorage persistence
-  const [letters, setLetters] = useState<TravelLetter[]>(() => {
-    try {
-      const saved = localStorage.getItem('versal_letters');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error('Error loading letters from localStorage', e);
-    }
-    return INITIAL_LETTERS;
-  });
+  // Letters state with Firestore persistence
+  const [letters, setLetters] = useState<TravelLetter[]>([]);
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'letters'), (snapshot) => {
+      const data = snapshot.docs.map(doc => doc.data() as TravelLetter);
+      setLetters(data.length > 0 ? data : INITIAL_LETTERS);
+    });
+    return unsub;
+  }, []);
 
+  // Hero image state
+  const [heroImage, setHeroImage] = useState<string>('/src/assets/images/IMG_4154.jpg');
+
+  // Save hero image to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('principe_hero_image', heroImage);
+    } catch (e) {
+      console.error('Error saving hero image', e);
+    }
+  }, [heroImage]);
   // Upload/Edit Modal State (only active inside Studio Manager)
   const [uploadModalState, setUploadModalState] = useState<{
     isOpen: boolean;
@@ -101,117 +93,72 @@ export default function App() {
     initialData: null,
   });
 
-  // Save tickets to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem('versal_tickets', JSON.stringify(tickets));
-    } catch (e) {
-      console.error('Error saving tickets', e);
-    }
-  }, [tickets]);
-
-  // Save destinations to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem('versal_destinations', JSON.stringify(destinations));
-    } catch (e) {
-      console.error('Error saving destinations', e);
-    }
-  }, [destinations]);
-
-  // Save letters to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem('versal_letters', JSON.stringify(letters));
-    } catch (e) {
-      console.error('Error saving letters', e);
-    }
-  }, [letters]);
-
   // Handlers for Tickets
-  const handleSaveTicket = (ticket: BoardingTicket) => {
-    setTickets((prev) => {
-      const existsIndex = prev.findIndex((t) => t.id === ticket.id);
-      if (existsIndex >= 0) {
-        const updated = [...prev];
-        updated[existsIndex] = ticket;
-        return updated;
-      }
-      return [ticket, ...prev];
-    });
 
-    // Automatically mark associated destination as completed
-    setDestinations((prev) =>
-      prev.map((d) => {
-        if (
-          d.code.toUpperCase() === ticket.destinationCode.toUpperCase() ||
-          ticket.destinationCity.toLowerCase().includes(d.city.toLowerCase())
-        ) {
-          return {
-            ...d,
-            completed: true,
-            completedDate: ticket.departingDate,
-            associatedTicketId: ticket.id,
-          };
-        }
-        return d;
-      })
-    );
+
+
+
+  const handleSaveTicket = async (ticket: BoardingTicket) => {
+    try {
+      await setDoc(doc(db, 'tickets', ticket.id), ticket);
+    } catch (error) {
+      console.error("Error saving ticket", error);
+    }
   };
 
-  const handleDeleteTicket = (ticketId: string) => {
-    setTickets((prev) => prev.filter((t) => t.id !== ticketId));
+  const handleDeleteTicket = async (ticketId: string) => {
+    try {
+      await deleteDoc(doc(db, 'tickets', ticketId));
+    } catch (error) {
+      console.error("Error deleting ticket", error);
+    }
   };
 
-  const handleResetTickets = () => {
-    setTickets(INITIAL_TICKETS);
-    setDestinations(INITIAL_DESTINATIONS);
-    setLetters(INITIAL_LETTERS);
+  const handleToggleDestination = async (destId: string) => {
+    const dest = destinations.find(d => d.id === destId);
+    if (!dest) return;
+    try {
+      await setDoc(doc(db, 'destinations', destId), {
+        ...dest,
+        completed: !dest.completed,
+        completedDate: !dest.completed ? new Date().toISOString().split('T')[0] : undefined,
+      });
+    } catch (error) {
+      console.error("Error toggling destination", error);
+    }
   };
 
-  const handleToggleDestination = (destId: string) => {
-    setDestinations((prev) =>
-      prev.map((d) => {
-        if (d.id === destId) {
-          const nextCompleted = !d.completed;
-          return {
-            ...d,
-            completed: nextCompleted,
-            completedDate: nextCompleted ? new Date().toISOString().split('T')[0] : undefined,
-          };
-        }
-        return d;
-      })
-    );
+  const handleAddDestination = async (newDest: Omit<DestinationItem, 'id'>) => {
+    const id = `dest-${Date.now()}`;
+    try {
+      await setDoc(doc(db, 'destinations', id), { ...newDest, id });
+    } catch (error) {
+      console.error("Error adding destination", error);
+    }
   };
 
-  const handleAddDestination = (newDest: Omit<DestinationItem, 'id'>) => {
-    const destWithId: DestinationItem = {
-      ...newDest,
-      id: `dest-${Date.now()}`,
-    };
-    setDestinations((prev) => [destWithId, ...prev]);
+  const handleDeleteDestination = async (destId: string) => {
+    try {
+      await deleteDoc(doc(db, 'destinations', destId));
+    } catch (error) {
+      console.error("Error deleting destination", error);
+    }
   };
 
-  const handleDeleteDestination = (destId: string) => {
-    setDestinations((prev) => prev.filter((d) => d.id !== destId));
+  const handleSaveLetter = async (letter: TravelLetter) => {
+    try {
+      await setDoc(doc(db, 'letters', letter.id), letter);
+    } catch (error) {
+      console.error("Error saving letter", error);
+    }
   };
 
-  // Handlers for Letters
-  const handleSaveLetter = (letter: TravelLetter) => {
-    setLetters((prev) => {
-      const existsIndex = prev.findIndex((l) => l.id === letter.id);
-      if (existsIndex >= 0) {
-        const updated = [...prev];
-        updated[existsIndex] = letter;
-        return updated;
-      }
-      return [letter, ...prev];
-    });
-  };
-
-  const handleDeleteLetter = (letterId: string) => {
-    setLetters((prev) => prev.filter((l) => l.id !== letterId));
+  const handleDeleteLetter = async (letterId: string) => {
+    try {
+      await deleteDoc(doc(db, 'letters', letterId));
+    } catch (error) {
+      console.error("Error deleting letter", error);
+    }
   };
 
   const openUploadModal = (prefill?: Partial<BoardingTicket>) => {
@@ -256,10 +203,10 @@ export default function App() {
   };
 
   return (
-    /* Signature Cobalt Blue Outer Window Border */
-    <div className="min-h-screen bg-[#0015ff] p-2 sm:p-3 lg:p-4 selection:bg-[#0015ff] selection:text-white">
+    /* Mediterranean Navy Luxury Outer Window Frame */
+    <div className="min-h-screen bg-[#0E2340] p-2 sm:p-3 lg:p-4 selection:bg-[#E05A36] selection:text-white">
       {/* Inner canvas container */}
-      <div className="relative min-h-[calc(100vh-16px)] sm:min-h-[calc(100vh-24px)] lg:min-h-[calc(100vh-32px)] bg-[#F5F2EB] text-[#121212] rounded-none sm:rounded-sm overflow-hidden flex flex-col justify-between shadow-2xl">
+      <div className="relative min-h-[calc(100vh-16px)] sm:min-h-[calc(100vh-24px)] lg:min-h-[calc(100vh-32px)] bg-[#FAF6EE] text-[#121212] rounded-none sm:rounded-sm overflow-hidden flex flex-col justify-between shadow-2xl">
         {currentPage === 'main' ? (
           /* =================== MAIN PUBLIC SHOWCASE PAGE (No Edit/Upload Buttons) =================== */
           <main className="flex-1 w-full space-y-0 relative">
@@ -269,26 +216,31 @@ export default function App() {
                 type="button"
                 onClick={handleOpenManager}
                 title="Acceso Protegido: Estudio & Gestor de Boletos"
-                className="group inline-flex items-center gap-2 px-4 py-2.5 bg-neutral-950/90 hover:bg-black text-white rounded-full border border-white/20 shadow-2xl backdrop-blur-md transition-all hover:scale-105 active:scale-95 text-xs font-mono font-bold cursor-pointer"
+                className="group inline-flex items-center gap-2 px-4 py-2.5 bg-[#0E2340]/95 hover:bg-[#071426] text-white rounded-full border border-amber-300/40 shadow-2xl backdrop-blur-md transition-all hover:scale-105 active:scale-95 text-xs font-mono font-bold cursor-pointer"
               >
                 {isUnlocked ? (
                   <Unlock className="w-4 h-4 text-emerald-400" />
                 ) : (
-                  <Lock className="w-4 h-4 text-[#FACC15]" />
+                  <Lock className="w-4 h-4 text-amber-300" />
                 )}
                 <span>Estudio & Gestor</span>
               </button>
             </div>
 
-            {/* Section 1: Versal Hero with interactive draggable stickers */}
+            {/* Section 1: Hero with Mediterranean Love Stationery Layout */}
             <section id="hero" className="w-full">
-              <Hero />
+              <Hero
+                onScrollToSection={scrollToSection}
+                customHeroImage={heroImage}
+              />
             </section>
 
             {/* Section 2: Infinite 3D Ticket Cover Flow Carousel (No Edit Button) */}
             <section id="tickets-3d" className="w-full">
               <TicketCarousel3D
                 tickets={tickets}
+                onOpenUploadModal={openUploadModal}
+                onEditTicket={handleSaveTicket}
                 onSwitchToMap={() => scrollToSection('flight-map')}
               />
             </section>
@@ -316,7 +268,13 @@ export default function App() {
                 destinations={destinations}
                 tickets={tickets}
                 onToggleDestination={handleToggleDestination}
-                allowEdit={false} // Clean display on main page!
+                onOpenUploadForDestination={(dest) => openUploadModal({
+                    destinationCity: dest.city,
+                    destinationCode: dest.code,
+                    departingDate: dest.targetDate || new Date().toISOString().split('T')[0],
+                })}
+                onAddDestination={handleAddDestination}
+                onDeleteDestination={handleDeleteDestination}
               />
             </section>
           </main>
@@ -327,10 +285,11 @@ export default function App() {
               tickets={tickets}
               destinations={destinations}
               letters={letters}
+              heroImage={heroImage}
+              onUpdateHeroImage={setHeroImage}
               onAddTicket={(newTicket) => handleSaveTicket(newTicket)}
               onUpdateTicket={(updated) => handleSaveTicket(updated)}
               onDeleteTicket={handleDeleteTicket}
-              onResetTickets={handleResetTickets}
               onSelectTicketFor3D={() => {
                 setCurrentPage('main');
                 setTimeout(() => scrollToSection('tickets-3d'), 100);

@@ -13,12 +13,70 @@
   .font-monospace {
     font-family: 'Space Mono', monospace;
   }
+
+  /* Roman Arch Shapes */
+  .shape-arch {
+    border-radius: 3.5rem 3.5rem 1.25rem 1.25rem;
+  }
+  .shape-arch-lg {
+    border-radius: 5rem 5rem 1.75rem 1.75rem;
+  }
+  .shape-arch-sm {
+    border-radius: 2.25rem 2.25rem 0.85rem 0.85rem;
+  }
+
+  /* Candy Stripe Patterns (from reference image) */
+  .pattern-stripes-terracotta {
+    background-image: repeating-linear-gradient(
+      90deg,
+      #E05A36,
+      #E05A36 12px,
+      #FFF6F2 12px,
+      #FFF6F2 24px
+    );
+  }
+
+  .pattern-stripes-marigold {
+    background-image: repeating-linear-gradient(
+      90deg,
+      #F4A62A,
+      #F4A62A 12px,
+      #FFFDF7 12px,
+      #FFFDF7 24px
+    );
+  }
+
+  .pattern-stripes-diagonal {
+    background-image: repeating-linear-gradient(
+      135deg,
+      #E05A36,
+      #E05A36 10px,
+      #FFF6F2 10px,
+      #FFF6F2 20px,
+      #F4A62A 20px,
+      #F4A62A 30px,
+      #FFFDF7 30px,
+      #FFFDF7 40px
+    );
+  }
+
+  /* Navy & Cream Checkers Pattern (from reference image) */
+  .pattern-checkers-navy {
+    background-color: #FBF8F1;
+    background-image: 
+      linear-gradient(45deg, #0E2340 25%, transparent 25%), 
+      linear-gradient(-45deg, #0E2340 25%, transparent 25%), 
+      linear-gradient(45deg, transparent 75%, #0E2340 75%), 
+      linear-gradient(-45deg, transparent 75%, #0E2340 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+  }
 }
 
-/* Custom scrollbar and subtle page transitions */
+/* Background outer frame color matching Mediterranean Navy */
 html {
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  background-color: #0015ff; /* Outer window color */
+  background-color: #0E2340;
 }
 
 /* Smooth drag cursor */
@@ -26,7 +84,25 @@ html {
   cursor: grabbing;
 }
 
-/* Prevent unwanted layout shifts */
+/* Prevent unwanted horizontal overflow */
 body {
   overflow-x: hidden;
+  background-color: #FAF6EE;
+  color: #1A1A1A;
+}
+
+/* Custom scrollbar matching terracotta and linen */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #FAF6EE;
+}
+::-webkit-scrollbar-thumb {
+  background: #E05A36;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #C84B2B;
 }

@@ -1,41 +1,56 @@
 import React from 'react';
 import { HeroStickers } from './HeroStickers';
-import { Language } from '../types';
+import { Crown, Heart, Plane, Mail, MapPin, Sparkles } from 'lucide-react';
 
 interface HeroProps {
-  onSelectProject?: (projectId: string) => void;
-  language?: Language;
+  onScrollToSection?: (sectionId: string) => void;
+  customHeroImage?: string;
 }
 
 export const Hero: React.FC<HeroProps> = ({
-  onSelectProject,
-  language = 'es',
+  onScrollToSection,
+  customHeroImage,
 }) => {
+  // Use custom uploaded image if available, otherwise default to the generated Mediterranean stationery image
+  const heroImgSrc =
+    customHeroImage ||
+    '/src/assets/images/mediterranean_love_stationery_1792013872743.jpg';
+
   return (
-    <section className="relative w-full min-h-[85vh] sm:min-h-[88vh] flex flex-col justify-center items-center px-4 sm:px-8 py-10 overflow-hidden bg-[#F5F2EB]">
-      {/* Draggable interactive stickers matching Versal Design screenshots */}
-      <HeroStickers onSelectProject={onSelectProject} language={language} />
+    <section className="relative w-full min-h-[92vh] flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 py-12 sm:py-20 overflow-hidden bg-[#FAF6EE]">
+      {/* Interactive Draggable Romantic Stickers (Scalloped Menu, Roman Arch, Navy Checkers, Citrus Tag) */}
+      <HeroStickers onScrollToSection={onScrollToSection} />
 
-      {/* The Iconic Hero Typographic Lockup (Screenshots 1 & 2) */}
-      <div className="relative z-20 my-auto text-center select-none pointer-events-none px-4">
-        {/* Top condensed uppercase editorial serif: "BORING IS BAD" */}
-        <h1 className="font-display font-black text-6xl sm:text-7xl md:text-8xl lg:text-9xl text-black tracking-tight uppercase leading-[0.85] text-balance">
-          BORING IS BAD
-        </h1>
+      {/* Main Content Container */}
+      <div className="relative z-20 max-w-5xl w-full mx-auto text-center flex flex-col items-center">
+        {/* The Hero Image: Styled in a Roman Arch Frame with Terracotta & Scalloped Accents */}
+        <div className="w-full relative group max-w-4xl">
+          {/* Background Decorative Candy-Stripe & Scalloped Border Silhouette */}
+          <div className="absolute -inset-2.5 rounded-t-[4rem] rounded-b-2xl bg-gradient-to-r from-[#E05A36] via-[#F4A62A] to-[#0E2340] opacity-80 blur-xs -z-10 group-hover:opacity-100 transition-opacity" />
 
-        {/* Interlocking flowing cursive calligraphy: "For Business" in electric cobalt blue */}
-        <div className="relative -mt-6 sm:-mt-10 md:-mt-14 lg:-mt-18">
-          <span className="font-script text-7xl sm:text-8xl md:text-9xl lg:text-[11rem] text-[#0015ff] font-normal leading-none inline-block drop-shadow-[0_4px_12px_rgba(0,21,255,0.15)] transform -rotate-2">
-            For Business
-          </span>
+          <div className="relative w-full aspect-[16/9] max-h-[580px] rounded-t-[3.8rem] rounded-b-2xl overflow-hidden shadow-2xl border-4 border-white bg-[#0E2340]">
+            <img
+              src={heroImgSrc}
+              alt="Principe Airlines - Mediterranean Love Stationery, Cartas de Amor & Boletos"
+              className="w-full h-full object-cover object-center group-hover:scale-[1.02] transition-transform duration-700 ease-out"
+              referrerPolicy="no-referrer"
+            />
+
+            {/* Subtle Warm Gradient Vignette */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none" />
+
+            {/* Top Pattern Ribbon */}
+            <div className="absolute top-0 left-0 right-0 h-3 pattern-stripes-terracotta border-b border-white/20" />
+
+            {/* Bottom Floating Bar on the Image with Royal Crown & VIP Passenger info */}
+            <div className="absolute bottom-3 sm:bottom-6 left-3 sm:left-6 right-3 sm:right-6 flex flex-wrap items-center justify-between gap-3 text-white pointer-events-none">
+              <div className="flex items-center gap-2.5 bg-[#0E2340]/85 backdrop-blur-md px-4 py-2 rounded-full border border-amber-300/40 text-xs sm:text-sm font-mono shadow-lg">
+                <Crown className="w-4 h-4 text-amber-300 fill-amber-300" />
+                <span className="font-bold tracking-wider text-amber-200">PASAJERO VIP: RAUL & REIKIS</span>
+              </div>
+            </div>
+          </div>
         </div>
-
-        {/* Studio Subtitle */}
-        <p className="mt-4 sm:mt-6 font-mono text-xs sm:text-sm text-neutral-600 tracking-wider uppercase pointer-events-auto max-w-lg mx-auto">
-          {language === 'es' 
-            ? 'Estudio de Packaging, Branding & Lettering · Santiago, Chile' 
-            : 'Packaging, Branding & Lettering Studio · Santiago, Chile'}
-        </p>
       </div>
     </section>
   );

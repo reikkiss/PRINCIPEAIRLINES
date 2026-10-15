@@ -23,7 +23,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenUploadModal,
 }) => {
   return (
-    <header className="sticky top-0 z-40 bg-[#F5F2EB]/95 backdrop-blur-md border-b border-black/10 transition-colors">
+    <header className="sticky top-0 z-40 bg-[#FAF6EE]/95 backdrop-blur-md border-b border-[#0E2340]/10 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-4">
         {/* Left: Versal Wordmark */}
         <button
@@ -37,14 +37,14 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Right Zone: Clean controls */}
         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           {/* Quick toggle between Showcase and Manager */}
-          <div className="flex items-center bg-black/5 p-1 rounded-lg border border-black/10 text-xs font-mono">
+          <div className="flex items-center bg-[#0E2340]/5 p-1 rounded-full border border-[#0E2340]/10 text-xs font-mono">
             <button
               type="button"
               onClick={() => setViewMode('showcase')}
-              className={`px-3 py-1.5 rounded-md transition-colors font-medium ${
+              className={`px-3 py-1.5 rounded-full transition-colors font-medium ${
                 viewMode === 'showcase'
-                  ? 'bg-black text-white shadow-sm font-bold'
-                  : 'text-neutral-700 hover:text-black'
+                  ? 'bg-[#0E2340] text-[#FAF6EE] shadow-sm font-bold'
+                  : 'text-[#0E2340]/70 hover:text-[#0E2340]'
               }`}
             >
               {language === 'es' ? 'Showcase & Mapa' : 'Showcase & Map'}
@@ -52,14 +52,14 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={() => setViewMode('manager')}
-              className={`px-3 py-1.5 rounded-md transition-colors font-medium flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-full transition-colors font-medium flex items-center gap-1.5 ${
                 viewMode === 'manager'
-                  ? 'bg-[#0015ff] text-white shadow-sm font-bold'
-                  : 'text-neutral-700 hover:text-black'
+                  ? 'bg-[#0E2340] text-[#FAF6EE] shadow-sm font-bold'
+                  : 'text-[#0E2340]/70 hover:text-[#0E2340]'
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
-              <span>{language === 'es' ? 'Gestor de Boletos' : 'Ticket Studio'}</span>
+              <span>{language === 'es' ? 'Gestor' : 'Studio'}</span>
             </button>
           </div>
 
@@ -67,10 +67,10 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={onOpenUploadModal}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#0015ff] hover:bg-[#0022ff] text-white text-xs font-mono font-bold uppercase tracking-wider rounded-lg transition-all shadow-sm"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#0E2340] hover:bg-[#1A3860] text-[#FAF6EE] text-xs font-mono font-bold uppercase tracking-wider rounded-full transition-all shadow-sm"
           >
-            <Camera className="w-3.5 h-3.5 text-[#FACC15]" />
-            <span>{language === 'es' ? 'Subir Foto' : 'Upload Card'}</span>
+            <Camera className="w-3.5 h-3.5 text-[#F59E0B]" />
+            <span>{language === 'es' ? 'Subir' : 'Upload'}</span>
           </button>
 
           {/* Language Switcher ES / EN */}
@@ -100,12 +100,12 @@ export const Header: React.FC<HeaderProps> = ({
             type="button"
             onClick={onOpenMenu}
             aria-label="Abrir menú"
-            className="p-2 sm:p-2.5 rounded-md hover:bg-black/5 transition-colors flex flex-col justify-center items-center gap-1 focus:outline-none cursor-pointer"
+            className="p-2 sm:p-2.5 rounded-full hover:bg-[#0E2340]/5 transition-colors flex flex-col justify-center items-center gap-1 focus:outline-none cursor-pointer"
           >
-            <span className="w-6 sm:w-7 h-[2px] bg-black block transition-all" />
-            <span className="w-6 sm:w-7 h-[2px] bg-black block transition-all" />
-            <span className="w-6 sm:w-7 h-[2px] bg-black block transition-all" />
-            <span className="w-6 sm:w-7 h-[2px] bg-black block transition-all" />
+            <span className="w-6 sm:w-7 h-[2px] bg-[#0E2340] block transition-all" />
+            <span className="w-6 sm:w-7 h-[2px] bg-[#0E2340] block transition-all" />
+            <span className="w-6 sm:w-7 h-[2px] bg-[#0E2340] block transition-all" />
+            <span className="w-6 sm:w-7 h-[2px] bg-[#0E2340] block transition-all" />
           </button>
         </div>
       </div>

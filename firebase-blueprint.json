@@ -1,0 +1,76 @@
+{
+  "entities": {
+    "BoardingTicket": {
+      "title": "BoardingTicket",
+      "description": "Represents a flight boarding ticket.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "status": { "type": "string" },
+        "statusColor": { "type": "string" },
+        "departingCode": { "type": "string" },
+        "departingCity": { "type": "string" },
+        "destinationCode": { "type": "string" },
+        "destinationCity": { "type": "string" },
+        "departingDate": { "type": "string" },
+        "packageContents": { "type": "string" },
+        "forRecipient": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "photoFilter": { "type": "string" },
+        "barcode1": { "type": "string" },
+        "barcode2": { "type": "string" },
+        "carrierName": { "type": "string" },
+        "flightNumber": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "packageContents", "forRecipient", "createdAt"]
+    },
+    "DestinationItem": {
+      "title": "DestinationItem",
+      "description": "Represents a travel destination.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "city": { "type": "string" },
+        "country": { "type": "string" },
+        "code": { "type": "string" },
+        "region": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "targetDate": { "type": "string" },
+        "completedDate": { "type": "string" },
+        "experienceNotes": { "type": "string" },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "associatedTicketId": { "type": "string" }
+      },
+      "required": ["id", "city", "code"]
+    },
+    "TravelLetter": {
+      "title": "TravelLetter",
+      "description": "Represents a love letter.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "recipient": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "title", "content", "createdAt"]
+    }
+  },
+  "firestore": {
+    "tickets/{ticketId}": {
+      "schema": "BoardingTicket",
+      "description": "Collection of boarding tickets."
+    },
+    "destinations/{destinationId}": {
+      "schema": "DestinationItem",
+      "description": "Collection of travel destinations."
+    },
+    "letters/{letterId}": {
+      "schema": "TravelLetter",
+      "description": "Collection of love letters."
+    }
+  }
+}
