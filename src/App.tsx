@@ -16,6 +16,9 @@ import { BoardingTicket, DestinationItem, TravelLetter } from './types';
 import { Lock, Unlock } from 'lucide-react';
 import { db } from './firebase';
 import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import heroImgFile from './assets/images/IMG_4154.jpg';
+
+
 
 export default function App() {
   // Page state: 'main' showcase page vs separate 'manager' page
@@ -62,8 +65,7 @@ export default function App() {
   }, []);
 
   // Hero image state
-  const [heroImage, setHeroImage] = useState<string>('/src/assets/images/IMG_4154.jpg');
-
+const [heroImage, setHeroImage] = useState<string>(heroImgFile);
   // Save hero image to localStorage
   useEffect(() => {
     try {
