@@ -39,8 +39,12 @@ export interface BoardingTicket {
   statusColor?: string;
   departingCode: string;
   departingCity: string;
+  departingCountry?: string;
+  departingRegion?: string;
   destinationCode: string;
   destinationCity: string;
+  destinationCountry?: string;
+  destinationRegion?: string;
   departingDate: string;
   returnDate?: string;
   packageContents: string; // Passenger or package name

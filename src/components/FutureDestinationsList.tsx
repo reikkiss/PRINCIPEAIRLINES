@@ -123,12 +123,46 @@ export const FutureDestinationsList: React.FC<FutureDestinationsListProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
             <div>
+              <label className="block font-bold text-neutral-700 mb-1">Código Aeropuerto (IATA) *</label>
+              <input
+                type="text"
+                maxLength={4}
+                placeholder="Ej. NRT, FLR"
+                value={newCode}
+                onChange={(e) => setNewCode(e.target.value.toUpperCase().trim())}
+                required
+                className="w-full px-3 py-2 border rounded border-neutral-300 focus:outline-none focus:border-[#0015ff] font-mono uppercase"
+              />
+            </div>
+
+            <div>
               <label className="block font-bold text-neutral-700 mb-1">Ciudad *</label>
               <input
                 type="text"
                 placeholder="Ej. Tokio, Florencia"
                 value={newCity}
                 onChange={(e) => setNewCity(e.target.value)}
+                onBlur={async () => {
+                    if (!newCity) return;
+                    try {
+                      const res = await fetch(`/api/airport-lookup?city=${encodeURIComponent(newCity)}`);
+                      if (!res.ok) return;
+                      const data = await res.json();
+                      if (data && data.length > 0) {
+                        const airport = data[0];
+                        setNewCode(airport.iata_code || airport.icao_code || '');
+                        setNewCountry(airport.country_name || '');
+                        
+                        const country = airport.country_name.toLowerCase();
+                        if (['france', 'spain', 'italy', 'germany', 'united kingdom'].includes(country)) setNewRegion('Europe');
+                        else if (['japan', 'china', 'south korea', 'thailand'].includes(country)) setNewRegion('Asia');
+                        else if (['usa', 'canada', 'brazil', 'argentina'].includes(country)) setNewRegion('Americas');
+                        else setNewRegion('Europe'); 
+                      }
+                    } catch (e) {
+                      console.error('Failed to lookup airport', e);
+                    }
+                }}
                 required
                 className="w-full px-3 py-2 border rounded border-neutral-300 focus:outline-none focus:border-[#0015ff]"
               />
@@ -142,30 +176,6 @@ export const FutureDestinationsList: React.FC<FutureDestinationsListProps> = ({
                 value={newCountry}
                 onChange={(e) => setNewCountry(e.target.value)}
                 className="w-full px-3 py-2 border rounded border-neutral-300 focus:outline-none focus:border-[#0015ff]"
-              />
-            </div>
-
-            <div>
-              <label className="block font-bold text-neutral-700 mb-1">Código Aeropuerto (IATA) *</label>
-              <input
-                type="text"
-                maxLength={4}
-                placeholder="Ej. NRT, FLR"
-                value={newCode}
-                onChange={(e) => {
-                  const code = e.target.value.toUpperCase().trim();
-                  setNewCode(code);
-                  
-                  // Simple lookup based on existing data
-                  const existing = destinations.find(d => d.code === code);
-                  if (existing) {
-                    setNewCity(existing.city);
-                    setNewCountry(existing.country);
-                    setNewRegion(existing.region);
-                  }
-                }}
-                required
-                className="w-full px-3 py-2 border rounded border-neutral-300 focus:outline-none focus:border-[#0015ff] font-mono uppercase"
               />
             </div>
 

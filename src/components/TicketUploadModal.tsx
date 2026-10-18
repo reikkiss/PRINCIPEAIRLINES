@@ -30,8 +30,34 @@ export const TicketUploadModal: React.FC<TicketUploadModalProps> = ({
   const [status, setStatus] = useState<string>(initialData?.status || 'WINNER');
   const [departingCode, setDepartingCode] = useState<string>(initialData?.departingCode || 'AKL');
   const [departingCity, setDepartingCity] = useState<string>(initialData?.departingCity || 'Auckland');
+  const [departingCountry, setDepartingCountry] = useState<string>(initialData?.departingCountry || '');
+  const [departingRegion, setDepartingRegion] = useState<string>(initialData?.departingRegion || '');
+  
   const [destinationCode, setDestinationCode] = useState<string>(initialData?.destinationCode || 'ICN');
   const [destinationCity, setDestinationCity] = useState<string>(initialData?.destinationCity || 'Seoul Incheon');
+  const [destinationCountry, setDestinationCountry] = useState<string>(initialData?.destinationCountry || '');
+  const [destinationRegion, setDestinationRegion] = useState<string>(initialData?.destinationRegion || '');
+
+  const handleLookup = async (city: string, setCode: (c: string) => void, setCountry: (c: string) => void, setRegion: (r: string) => void) => {
+    try {
+      const res = await fetch(`/api/airport-lookup?city=${encodeURIComponent(city)}`);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const airport = data[0];
+        setCode(airport.iata_code || airport.icao_code || '');
+        setCountry(airport.country_name || '');
+        const country = airport.country_name.toLowerCase();
+        let region = 'Europe';
+        if (['france', 'spain', 'italy', 'germany', 'united kingdom'].includes(country)) region = 'Europe';
+        else if (['japan', 'china', 'south korea', 'thailand'].includes(country)) region = 'Asia';
+        else if (['usa', 'canada', 'brazil', 'argentina'].includes(country)) region = 'Americas';
+        setRegion(region);
+      }
+    } catch (e) {
+      console.error('Lookup failed', e);
+    }
+  };
+
   const [departingDate, setDepartingDate] = useState<string>(
     initialData?.departingDate || new Date().toISOString().split('T')[0]
   );
@@ -242,6 +268,18 @@ export const TicketUploadModal: React.FC<TicketUploadModalProps> = ({
                   Origen / Departing
                 </span>
                 <div>
+                  <label className="block text-[11px] text-white/70">Ciudad</label>
+                  <input
+                    type="text"
+                    value={departingCity}
+                    onChange={(e) => setDepartingCity(e.target.value)}
+                    onBlur={() => handleLookup(departingCity, setDepartingCode, setDepartingCountry, setDepartingRegion)}
+                    className="w-full px-2.5 py-1.5 bg-black border border-white/20 rounded text-white text-xs focus:border-[#FACC15] focus:outline-none"
+                    placeholder="Auckland"
+                    required
+                  />
+                </div>
+                <div>
                   <label className="block text-[11px] text-white/70">Código (IATA)</label>
                   <input
                     type="text"
@@ -253,17 +291,6 @@ export const TicketUploadModal: React.FC<TicketUploadModalProps> = ({
                     required
                   />
                 </div>
-                <div>
-                  <label className="block text-[11px] text-white/70">Ciudad</label>
-                  <input
-                    type="text"
-                    value={departingCity}
-                    onChange={(e) => setDepartingCity(e.target.value)}
-                    className="w-full px-2.5 py-1.5 bg-black border border-white/20 rounded text-white text-xs focus:border-[#FACC15] focus:outline-none"
-                    placeholder="Auckland"
-                    required
-                  />
-                </div>
               </div>
 
               {/* Destination */}
@@ -271,6 +298,18 @@ export const TicketUploadModal: React.FC<TicketUploadModalProps> = ({
                 <span className="text-[10px] font-mono font-bold text-white/50 uppercase tracking-wider">
                   Destino / Destination
                 </span>
+                <div>
+                  <label className="block text-[11px] text-white/70">Ciudad</label>
+                  <input
+                    type="text"
+                    value={destinationCity}
+                    onChange={(e) => setDestinationCity(e.target.value)}
+                    onBlur={() => handleLookup(destinationCity, setDestinationCode, setDestinationCountry, setDestinationRegion)}
+                    className="w-full px-2.5 py-1.5 bg-black border border-white/20 rounded text-white text-xs focus:border-[#FACC15] focus:outline-none"
+                    placeholder="Seoul Incheon"
+                    required
+                  />
+                </div>
                 <div>
                   <label className="block text-[11px] text-white/70">Código (IATA)</label>
                   <input
@@ -280,17 +319,6 @@ export const TicketUploadModal: React.FC<TicketUploadModalProps> = ({
                     onChange={(e) => setDestinationCode(e.target.value.toUpperCase())}
                     className="w-full px-2.5 py-1.5 bg-black border border-white/20 rounded font-mono font-bold text-white text-sm focus:border-[#FACC15] focus:outline-none uppercase"
                     placeholder="ICN"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] text-white/70">Ciudad</label>
-                  <input
-                    type="text"
-                    value={destinationCity}
-                    onChange={(e) => setDestinationCity(e.target.value)}
-                    className="w-full px-2.5 py-1.5 bg-black border border-white/20 rounded text-white text-xs focus:border-[#FACC15] focus:outline-none"
-                    placeholder="Seoul Incheon"
                     required
                   />
                 </div>
