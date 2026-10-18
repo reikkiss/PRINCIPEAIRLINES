@@ -152,7 +152,18 @@ export const FutureDestinationsList: React.FC<FutureDestinationsListProps> = ({
                 maxLength={4}
                 placeholder="Ej. NRT, FLR"
                 value={newCode}
-                onChange={(e) => setNewCode(e.target.value.toUpperCase())}
+                onChange={(e) => {
+                  const code = e.target.value.toUpperCase().trim();
+                  setNewCode(code);
+                  
+                  // Simple lookup based on existing data
+                  const existing = destinations.find(d => d.code === code);
+                  if (existing) {
+                    setNewCity(existing.city);
+                    setNewCountry(existing.country);
+                    setNewRegion(existing.region);
+                  }
+                }}
                 required
                 className="w-full px-3 py-2 border rounded border-neutral-300 focus:outline-none focus:border-[#0015ff] font-mono uppercase"
               />
