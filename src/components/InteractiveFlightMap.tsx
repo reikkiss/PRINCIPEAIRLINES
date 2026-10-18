@@ -16,12 +16,12 @@ export const InteractiveFlightMap: React.FC<InteractiveFlightMapProps> = ({
 }) => {
   const [hoveredCity, setHoveredCity] = useState<string | null>(null);
 
-  // Helper to find ticket by airport code
-  const getTicketForCode = (code: string) => {
+  // Helper to find ticket by airport code or associated ID
+  const getTicketForCode = (dest: DestinationItem) => {
     return tickets.find(
       (t) =>
-        t.destinationCode.toUpperCase().includes(code.toUpperCase()) ||
-        t.departingCode.toUpperCase().includes(code.toUpperCase())
+        t.id === dest.associatedTicketId ||
+        t.destinationCode.toUpperCase() === dest.code.toUpperCase()
     );
   };
 
@@ -264,11 +264,20 @@ export const InteractiveFlightMap: React.FC<InteractiveFlightMapProps> = ({
 
           {/* Destination Nodes across the globe */}
           {destinations
-            .filter((dest) => getTicketForCode(dest.code))
+            .filter((dest) => {
+              // Only show completed destinations that have a ticket created in the database
+              if (!dest.completed) return false;
+              
+              const ticket = tickets.find((t) =>
+                t.id === dest.associatedTicketId ||
+                t.destinationCode.toUpperCase() === dest.code.toUpperCase()
+              );
+              return !!ticket;
+            })
             .map((dest) => {
             const x = ((dest.lng + 180) / 360) * 1000;
             const y = ((90 - dest.lat) / 180) * 500;
-            const ticket = getTicketForCode(dest.code);
+            const ticket = getTicketForCode(dest);
             const isHovered = hoveredCity === dest.code;
 
             return (
@@ -316,7 +325,7 @@ export const InteractiveFlightMap: React.FC<InteractiveFlightMapProps> = ({
                       fontFamily="monospace"
                       textAnchor="middle"
                     >
-                      {dest.city} ({dest.code})
+                      {`${ticket ? ticket.destinationCity : dest.city} (${dest.code})`}
                     </text>
                   </g>
                 )}

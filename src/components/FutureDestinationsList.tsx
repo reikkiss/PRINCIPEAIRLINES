@@ -6,9 +6,9 @@ interface FutureDestinationsListProps {
   destinations: DestinationItem[];
   tickets: BoardingTicket[];
   onToggleDestination: (destId: string) => void;
-  onOpenUploadForDestination: (destination: DestinationItem) => void;
-  onAddDestination: (destination: Omit<DestinationItem, 'id'>) => void;
-  onDeleteDestination: (destId: string) => void;
+  onOpenUploadForDestination?: (destination: DestinationItem) => void;
+  onAddDestination?: (destination: Omit<DestinationItem, 'id'>) => void;
+  onDeleteDestination?: (destId: string) => void;
 }
 
 export const FutureDestinationsList: React.FC<FutureDestinationsListProps> = ({
@@ -92,14 +92,16 @@ export const FutureDestinationsList: React.FC<FutureDestinationsListProps> = ({
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#0015ff] hover:bg-[#0022ff] text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all shadow-md"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Agregar Ciudad</span>
-          </button>
+          {onAddDestination && (
+              <button
+                type="button"
+                onClick={() => setShowAddForm(!showAddForm)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#0015ff] hover:bg-[#0022ff] text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all shadow-md"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Agregar Ciudad</span>
+              </button>
+          )}
         </div>
       </div>
 
@@ -337,23 +339,27 @@ export const FutureDestinationsList: React.FC<FutureDestinationsListProps> = ({
                   ) : null}
 
                   {/* Immediate Upload Button */}
-                  <button
-                    type="button"
-                    onClick={() => onOpenUploadForDestination(dest)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0015ff] hover:bg-[#0022ff] text-white text-xs font-mono font-bold uppercase tracking-wider rounded transition-all shadow-sm"
-                  >
-                    <Camera className="w-3.5 h-3.5" />
-                    <span>{hasTicket ? 'Reemplazar Foto' : 'Subir Tarjeta'}</span>
-                  </button>
+                  {onOpenUploadForDestination && (
+                      <button
+                        type="button"
+                        onClick={() => onOpenUploadForDestination(dest)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0015ff] hover:bg-[#0022ff] text-white text-xs font-mono font-bold uppercase tracking-wider rounded transition-all shadow-sm"
+                      >
+                        <Camera className="w-3.5 h-3.5" />
+                        <span>{hasTicket ? 'Reemplazar Foto' : 'Subir Tarjeta'}</span>
+                      </button>
+                  )}
 
-                  <button
-                    type="button"
-                    onClick={() => onDeleteDestination(dest.id)}
-                    title="Eliminar de lista"
-                    className="p-1.5 text-neutral-400 hover:text-red-600 rounded transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {onDeleteDestination && (
+                      <button
+                        type="button"
+                        onClick={() => onDeleteDestination(dest.id)}
+                        title="Eliminar de lista"
+                        className="p-1.5 text-neutral-400 hover:text-red-600 rounded transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                  )}
                 </div>
               </div>
             );

@@ -12,7 +12,7 @@ export const HeroStickers: React.FC<HeroStickersProps> = ({ onScrollToSection })
   return (
     <div 
       ref={containerRef}
-      className="absolute inset-0 pointer-events-none overflow-hidden select-none z-10"
+      className="absolute inset-0 pointer-events-none overflow-hidden select-none z-30"
       aria-hidden="true"
     >
       {/* 
@@ -25,7 +25,7 @@ export const HeroStickers: React.FC<HeroStickersProps> = ({ onScrollToSection })
         dragElastic={0.2}
         whileHover={{ scale: 1.06, rotate: -3 }}
         whileTap={{ scale: 0.95 }}
-        className="absolute top-[8%] left-[2%] sm:left-[4%] lg:left-[6%] pointer-events-auto cursor-grab active:cursor-grabbing z-20"
+        className="absolute top-[5%] left-[2%] sm:left-[4%] lg:left-[6%] pointer-events-auto cursor-grab active:cursor-grabbing z-20"
         initial={{ opacity: 0, y: -20, rotate: -6 }}
         animate={{ opacity: 1, y: 0, rotate: -4 }}
         transition={{ duration: 0.8, delay: 0.1, type: 'spring', stiffness: 120 }}
@@ -90,7 +90,7 @@ export const HeroStickers: React.FC<HeroStickersProps> = ({ onScrollToSection })
         dragElastic={0.2}
         whileHover={{ scale: 1.06, rotate: 4 }}
         whileTap={{ scale: 0.95 }}
-        className="absolute top-[6%] right-[2%] sm:right-[4%] lg:right-[6%] pointer-events-auto cursor-grab active:cursor-grabbing z-20 hidden sm:block"
+        className="absolute top-[6%] right-[2%] sm:right-[4%] lg:right-[6%] pointer-events-auto cursor-grab active:cursor-grabbing z-20 scale-[0.6] sm:scale-100"
         initial={{ opacity: 0, scale: 0.8, rotate: 6 }}
         animate={{ opacity: 1, scale: 1, rotate: 4 }}
         transition={{ duration: 0.8, delay: 0.2, type: 'spring' }}
@@ -135,7 +135,7 @@ export const HeroStickers: React.FC<HeroStickersProps> = ({ onScrollToSection })
         dragElastic={0.2}
         whileHover={{ scale: 1.08, rotate: -4 }}
         whileTap={{ scale: 0.95 }}
-        className="absolute bottom-[10%] left-[2%] sm:left-[4%] lg:left-[7%] pointer-events-auto cursor-grab active:cursor-grabbing z-20 hidden lg:block"
+        className="absolute bottom-[10%] left-[2%] sm:left-[4%] lg:left-[7%] pointer-events-auto cursor-grab active:cursor-grabbing z-20 scale-[0.6] sm:scale-100"
         initial={{ opacity: 0, x: -20, rotate: 8 }}
         animate={{ opacity: 1, x: 0, rotate: 4 }}
         transition={{ duration: 0.8, delay: 0.3, type: 'spring' }}
@@ -174,7 +174,7 @@ export const HeroStickers: React.FC<HeroStickersProps> = ({ onScrollToSection })
         dragElastic={0.2}
         whileHover={{ scale: 1.08, rotate: 5 }}
         whileTap={{ scale: 0.95 }}
-        className="absolute bottom-[10%] right-[3%] sm:right-[5%] lg:right-[8%] pointer-events-auto cursor-grab active:cursor-grabbing z-20 hidden md:block"
+        className="absolute bottom-[10%] right-[3%] sm:right-[5%] lg:right-[8%] pointer-events-auto cursor-grab active:cursor-grabbing z-20 scale-[0.6] sm:scale-100"
         initial={{ opacity: 0, y: 20, rotate: -6 }}
         animate={{ opacity: 1, y: 0, rotate: -3 }}
         transition={{ duration: 0.8, delay: 0.35, type: 'spring' }}

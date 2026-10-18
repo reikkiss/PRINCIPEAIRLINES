@@ -9,9 +9,7 @@ import { TicketUploadModal } from './components/TicketUploadModal';
 import { LetterEditorModal } from './components/LetterEditorModal';
 import { LetterReaderModal } from './components/LetterReaderModal';
 import { DateLockModal } from './components/DateLockModal';
-import { INITIAL_TICKETS } from './data/ticketsData';
-import { INITIAL_DESTINATIONS } from './data/destinationsData';
-import { INITIAL_LETTERS } from './data/lettersData';
+
 import { BoardingTicket, DestinationItem, TravelLetter } from './types';
 import { Lock, Unlock } from 'lucide-react';
 import { db } from './firebase';
@@ -39,7 +37,7 @@ export default function App() {
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'tickets'), (snapshot) => {
       const data = snapshot.docs.map(doc => doc.data() as BoardingTicket);
-      setTickets(data.length > 0 ? data : INITIAL_TICKETS);
+      setTickets(data);
     });
     return unsub;
   }, []);
@@ -49,7 +47,7 @@ export default function App() {
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'destinations'), (snapshot) => {
       const data = snapshot.docs.map(doc => doc.data() as DestinationItem);
-      setDestinations(data.length > 0 ? data : INITIAL_DESTINATIONS);
+      setDestinations(data);
     });
     return unsub;
   }, []);
@@ -64,7 +62,7 @@ export default function App() {
 
     const unsub = onSnapshot(collection(db, 'letters'), (snapshot) => {
       const data = snapshot.docs.map(doc => doc.data() as TravelLetter);
-      setLetters(data.length > 0 ? data : INITIAL_LETTERS);
+      setLetters(data);
     });
     return unsub;
   }, []);
@@ -107,7 +105,9 @@ const [heroImage, setHeroImage] = useState<string>(heroImgFile);
 
   const handleSaveTicket = async (ticket: BoardingTicket) => {
     try {
-      await setDoc(doc(db, 'tickets', ticket.id), ticket);
+      // Remove undefined values to prevent Firestore errors
+      const sanitizedTicket = JSON.parse(JSON.stringify(ticket));
+      await setDoc(doc(db, 'tickets', ticket.id), sanitizedTicket);
     } catch (error) {
       console.error("Error saving ticket", error);
     }
@@ -125,11 +125,14 @@ const [heroImage, setHeroImage] = useState<string>(heroImgFile);
     const dest = destinations.find(d => d.id === destId);
     if (!dest) return;
     try {
-      await setDoc(doc(db, 'destinations', destId), {
+      const updatedDest = {
         ...dest,
         completed: !dest.completed,
-        completedDate: !dest.completed ? new Date().toISOString().split('T')[0] : undefined,
-      });
+        completedDate: !dest.completed ? new Date().toISOString().split('T')[0] : null,
+      };
+      // Explicitly remove undefined fields if any (though structured object here)
+      const sanitizedDest = JSON.parse(JSON.stringify(updatedDest));
+      await setDoc(doc(db, 'destinations', destId), sanitizedDest);
     } catch (error) {
       console.error("Error toggling destination", error);
     }
@@ -138,7 +141,8 @@ const [heroImage, setHeroImage] = useState<string>(heroImgFile);
   const handleAddDestination = async (newDest: Omit<DestinationItem, 'id'>) => {
     const id = `dest-${Date.now()}`;
     try {
-      await setDoc(doc(db, 'destinations', id), { ...newDest, id });
+      const sanitizedDest = JSON.parse(JSON.stringify({ ...newDest, id }));
+      await setDoc(doc(db, 'destinations', id), sanitizedDest);
     } catch (error) {
       console.error("Error adding destination", error);
     }
@@ -154,7 +158,8 @@ const [heroImage, setHeroImage] = useState<string>(heroImgFile);
 
   const handleSaveLetter = async (letter: TravelLetter) => {
     try {
-      await setDoc(doc(db, 'letters', letter.id), letter);
+      const sanitizedLetter = JSON.parse(JSON.stringify(letter));
+      await setDoc(doc(db, 'letters', letter.id), sanitizedLetter);
     } catch (error) {
       console.error("Error saving letter", error);
     }
@@ -275,13 +280,9 @@ const [heroImage, setHeroImage] = useState<string>(heroImgFile);
                 destinations={destinations}
                 tickets={tickets}
                 onToggleDestination={handleToggleDestination}
-                onOpenUploadForDestination={(dest) => openUploadModal({
-                    destinationCity: dest.city,
-                    destinationCode: dest.code,
-                    departingDate: dest.targetDate || new Date().toISOString().split('T')[0],
-                })}
-                onAddDestination={handleAddDestination}
-                onDeleteDestination={handleDeleteDestination}
+                onOpenUploadForDestination={undefined}
+                onAddDestination={undefined}
+                onDeleteDestination={undefined}
               />
             </section>
           </main>
