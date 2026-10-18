@@ -263,7 +263,9 @@ export const InteractiveFlightMap: React.FC<InteractiveFlightMapProps> = ({
           </g>
 
           {/* Destination Nodes across the globe */}
-          {destinations.map((dest) => {
+          {destinations
+            .filter((dest) => getTicketForCode(dest.code))
+            .map((dest) => {
             const x = ((dest.lng + 180) / 360) * 1000;
             const y = ((90 - dest.lat) / 180) * 500;
             const ticket = getTicketForCode(dest.code);

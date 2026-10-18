@@ -70,7 +70,7 @@ export const TicketCarousel3D: React.FC<TicketCarousel3DProps> = ({
         {/* Floor reflection ambient effect */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-[85%] h-12 bg-gradient-to-t from-white/10 to-transparent blur-2xl rounded-full pointer-events-none" />
 
-        <div className="relative w-full max-w-5xl h-[560px] flex items-center justify-center">
+        <div className="relative w-full max-w-5xl h-[400px] sm:h-[560px] flex items-center justify-center">
           {tickets.map((ticket, index) => {
             const offset = index - activeIndex;
             const absOffset = Math.abs(offset);
@@ -119,7 +119,7 @@ export const TicketCarousel3D: React.FC<TicketCarousel3DProps> = ({
                 <TicketCard
                   ticket={ticket}
                   isFocused={offset === 0}
-                  onEdit={onEditTicket}
+                  onEdit={onEditTicket ? onEditTicket : undefined}
                   onViewOnMap={() => onSwitchToMap?.(ticket)}
                   showActions={offset === 0}
                 />

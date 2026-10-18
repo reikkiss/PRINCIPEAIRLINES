@@ -28,7 +28,7 @@ export const Hero: React.FC<HeroProps> = ({
           {/* Background Decorative Candy-Stripe & Scalloped Border Silhouette */}
           <div className="absolute -inset-2.5 rounded-t-[4rem] rounded-b-2xl bg-gradient-to-r from-[#E05A36] via-[#F4A62A] to-[#0E2340] opacity-80 blur-xs -z-10 group-hover:opacity-100 transition-opacity" />
 
-          <div className="relative w-full aspect-[16/9] max-h-[580px] rounded-t-[3.8rem] rounded-b-2xl overflow-hidden shadow-2xl border-4 border-white bg-[#0E2340]">
+          <div className="relative w-full aspect-[16/9] max-h-[300px] sm:max-h-[580px] rounded-t-[3.8rem] rounded-b-2xl overflow-hidden shadow-2xl border-4 border-white bg-[#0E2340]">
             <img
               src={heroImgSrc}
               alt="Principe Airlines - Mediterranean Love Stationery, Cartas de Amor & Boletos"

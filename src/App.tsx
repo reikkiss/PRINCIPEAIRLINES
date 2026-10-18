@@ -247,7 +247,7 @@ const [heroImage, setHeroImage] = useState<string>(heroImgFile);
               <TicketCarousel3D
                 tickets={tickets}
                 onOpenUploadModal={openUploadModal}
-                onEditTicket={handleSaveTicket}
+                onEditTicket={undefined}
                 onSwitchToMap={() => scrollToSection('flight-map')}
               />
             </section>
