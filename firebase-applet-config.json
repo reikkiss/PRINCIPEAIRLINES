@@ -1,12 +1,9 @@
 {
-  "projectId": "fitnesscrm-7dc96",
-  "appId": "1:811236909279:web:3afaa6fd69ac0a23a4896a",
-  "apiKey": "AIzaSyAFrybqLDE6DYP8hN4z14Ab03Mg4LNRenQ",
-  "authDomain": "fitnesscrm-7dc96.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-versaldesignbran-4b9bfd6d-3673-4af8-a0ab-89e49ab097f4",
-  "storageBucket": "fitnesscrm-7dc96.firebasestorage.app",
-  "messagingSenderId": "811236909279",
-  "measurementId": "",
-  "oAuthClientId": "811236909279-9b63n209uofjrrgmpssorft38setptu2.apps.googleusercontent.com",
-  "recaptchaSiteKey": ""
+  "apiKey": "AIzaSyCaUzMc3TQ2Nom4df2m1dv7PEjgefjBUIs",
+  "authDomain": "budgetcreator0202.firebaseapp.com",
+  "projectId": "budgetcreator0202",
+  "storageBucket": "budgetcreator0202.firebasestorage.app",
+  "messagingSenderId": "45614080993",
+  "appId": "1:45614080993:web:d3bc33cbde70e7e2cd68a0",
+  "measurementId": "G-N0YEGXJ9CD"
 }

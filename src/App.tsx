@@ -57,6 +57,11 @@ export default function App() {
   // Letters state with Firestore persistence
   const [letters, setLetters] = useState<TravelLetter[]>([]);
   useEffect(() => {
+    // Diagnostic connection test
+    import('firebase/firestore').then(({ doc, getDocFromServer }) => {
+        getDocFromServer(doc(db, 'test', 'connection')).catch((e) => console.log('Firestore connection test:', e));
+    });
+
     const unsub = onSnapshot(collection(db, 'letters'), (snapshot) => {
       const data = snapshot.docs.map(doc => doc.data() as TravelLetter);
       setLetters(data.length > 0 ? data : INITIAL_LETTERS);
