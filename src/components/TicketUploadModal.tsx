@@ -144,7 +144,7 @@ export const TicketUploadModal: React.FC<TicketUploadModalProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       try {
-        const compressed = await compressImage(file, 1024, 1024, 0.75);
+        const compressed = await compressImage(file, 800, 800, 0.7);
         setPhotoUrl(compressed);
       } catch (err) {
         console.error('Error compressing image', err);
@@ -160,10 +160,10 @@ export const TicketUploadModal: React.FC<TicketUploadModalProps> = ({
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Ensure photoUrl is compressed if it's a large base64 image
+    // Ensure photoUrl is compressed if it's a base64 image
     let finalPhoto = photoUrl;
-    if (finalPhoto && finalPhoto.startsWith('data:image') && finalPhoto.length > 500000) {
-      finalPhoto = await compressImage(finalPhoto, 900, 900, 0.65);
+    if (finalPhoto && finalPhoto.startsWith('data:image')) {
+      finalPhoto = await compressImage(finalPhoto, 800, 800, 0.65);
     }
 
     const ticketToSave: BoardingTicket = {

@@ -44,6 +44,10 @@ interface TicketManagerPageProps {
   onOpenLetterReader: (letter: TravelLetter) => void;
   onBackToMain: () => void;
   onLockSession: () => void;
+  onClearDemoContent?: () => Promise<void> | void;
+  onDeleteAllDestinations?: () => Promise<void> | void;
+  onDeleteAllTickets?: () => Promise<void> | void;
+  onDeleteAllLetters?: () => Promise<void> | void;
 }
 
 export const TicketManagerPage: React.FC<TicketManagerPageProps> = ({
@@ -65,6 +69,10 @@ export const TicketManagerPage: React.FC<TicketManagerPageProps> = ({
   onOpenLetterReader,
   onBackToMain,
   onLockSession,
+  onClearDemoContent,
+  onDeleteAllDestinations,
+  onDeleteAllTickets,
+  onDeleteAllLetters,
 }) => {
   const [activeTab, setActiveTab] = useState<'tickets' | 'destinations' | 'letters' | 'portada'>('tickets');
   const [searchTerm, setSearchTerm] = useState('');
@@ -87,52 +95,56 @@ export const TicketManagerPage: React.FC<TicketManagerPageProps> = ({
     return matchesSearch && matchesStatus;
   });
 
-  // Handle Multiple / Batch Image Uploads
-  const handleBatchImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle Multiple / Batch Image Uploads with client-side compression to satisfy Firestore limits
+  const handleBatchImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    const fileList = Array.from(files);
+    const total = fileList.length;
+    setBatchUploadNotice(`Comprimiendo y procesando ${total} imágenes para la base de datos...`);
+
     let processed = 0;
-    const total = files.length;
+    for (let index = 0; index < fileList.length; index++) {
+      const file = fileList[index];
+      try {
+        const photoUrl = await compressImage(file, 800, 800, 0.7);
+        const cleanName =
+          file.name.split('.')[0].replace(/[^a-zA-Z0-9]/g, ' ').toUpperCase() ||
+          `PASSENGER ${index + 1}`;
 
-    Array.from(files).forEach((file, index) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          const photoUrl = event.target.result as string;
-          const cleanName = file.name.split('.')[0].replace(/[^a-zA-Z0-9]/g, ' ').toUpperCase() || `PASSENGER ${index + 1}`;
+        const newTicket: BoardingTicket = {
+          id: `ticket-${Date.now()}-${index}`,
+          status: index % 2 === 0 ? 'WINNER' : 'ORDERED',
+          statusColor: index % 2 === 0 ? '#EAB308' : '#FB923C',
+          departingCode: 'AKL',
+          departingCity: 'Auckland',
+          destinationCode: index % 3 === 0 ? 'ICN' : index % 3 === 1 ? 'LHR' : 'CDG',
+          destinationCity: index % 3 === 0 ? 'Seoul Incheon' : index % 3 === 1 ? 'London' : 'Paris',
+          departingDate: new Date(Date.now() + index * 86400000 * 7).toISOString().split('T')[0],
+          packageContents: cleanName.slice(0, 16),
+          forRecipient: 'VIP TRAVELER',
+          photoUrl,
+          photoFilter: 'halftone',
+          barcode1: Math.floor(100000000000 + Math.random() * 900000000000).toString(),
+          barcode2: Math.floor(100000000000 + Math.random() * 900000000000).toString(),
+          carrierName: 'PRINCIPE AIRLINES',
+          flightNumber: `PA${Math.floor(200 + Math.random() * 700)}`,
+          createdAt: new Date().toISOString(),
+        };
 
-          const newTicket: BoardingTicket = {
-            id: `ticket-${Date.now()}-${index}`,
-            status: index % 2 === 0 ? 'WINNER' : 'ORDERED',
-            statusColor: index % 2 === 0 ? '#EAB308' : '#FB923C',
-            departingCode: 'AKL',
-            departingCity: 'Auckland',
-            destinationCode: index % 3 === 0 ? 'ICN' : index % 3 === 1 ? 'LHR' : 'CDG',
-            destinationCity: index % 3 === 0 ? 'Seoul Incheon' : index % 3 === 1 ? 'London' : 'Paris',
-            departingDate: new Date(Date.now() + index * 86400000 * 7).toISOString().split('T')[0],
-            packageContents: cleanName.slice(0, 16),
-            forRecipient: 'VIP TRAVELER',
-            photoUrl,
-            photoFilter: 'halftone',
-            barcode1: Math.floor(100000000000 + Math.random() * 900000000000).toString(),
-            barcode2: Math.floor(100000000000 + Math.random() * 900000000000).toString(),
-            carrierName: 'PRINCIPE AIRLINES',
-            flightNumber: `PA${Math.floor(200 + Math.random() * 700)}`,
-            createdAt: new Date().toISOString(),
-          };
+        onAddTicket(newTicket);
+        processed += 1;
+      } catch (err) {
+        console.error('Error compressing batch image:', err);
+      }
+    }
 
-          onAddTicket(newTicket);
-          processed += 1;
-
-          if (processed === total) {
-            setBatchUploadNotice(`¡Se crearon ${total} nuevos boletos a partir de las imágenes subidas!`);
-            setTimeout(() => setBatchUploadNotice(null), 5000);
-          }
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+    if (processed > 0) {
+      setBatchUploadNotice(`¡Se crearon y guardaron ${processed} nuevos boletos con éxito!`);
+      setTimeout(() => setBatchUploadNotice(null), 5000);
+    }
+    if (batchInputRef.current) batchInputRef.current.value = '';
   };
 
   const handleDuplicateTicket = (ticket: BoardingTicket) => {

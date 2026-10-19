@@ -11,6 +11,7 @@ interface FutureDestinationsListProps {
   onOpenUploadForDestination?: (destination: DestinationItem) => void;
   onAddDestination?: (destination: Omit<DestinationItem, 'id'>) => void;
   onDeleteDestination?: (destId: string) => void;
+  onDeleteAllDestinations?: () => void;
 }
 
 export const FutureDestinationsList: React.FC<FutureDestinationsListProps> = ({
@@ -20,6 +21,7 @@ export const FutureDestinationsList: React.FC<FutureDestinationsListProps> = ({
   onOpenUploadForDestination,
   onAddDestination,
   onDeleteDestination,
+  onDeleteAllDestinations,
 }) => {
   const [selectedRegion, setSelectedRegion] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'completed'>('all');
@@ -109,24 +111,36 @@ export const FutureDestinationsList: React.FC<FutureDestinationsListProps> = ({
           </p>
         </div>
 
-        {/* Progress Counter & Add Button */}
-        <div className="flex items-center gap-3">
-          <div className="bg-neutral-100 border border-neutral-300 px-4 py-2 rounded-lg text-center font-mono">
-            <div className="text-xs text-neutral-500 uppercase">Completadas</div>
-            <div className="text-lg font-bold text-[#0015ff]">
+        {/* Progress Counter & Actions */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="bg-neutral-100 border border-neutral-300 px-3 py-1.5 rounded-lg text-center font-mono">
+            <div className="text-[10px] text-neutral-500 uppercase">Completadas</div>
+            <div className="text-base font-bold text-[#0015ff]">
               {completedCount} <span className="text-neutral-400 font-normal">/ {destinations.length}</span>
             </div>
           </div>
 
+          {onDeleteAllDestinations && destinations.length > 0 && (
+            <button
+              type="button"
+              onClick={onDeleteAllDestinations}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-mono text-xs font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer shadow-xs"
+              title="Eliminar todas las ciudades de la lista"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Limpiar Ciudades</span>
+            </button>
+          )}
+
           {onAddDestination && (
-              <button
-                type="button"
-                onClick={() => setShowAddForm(!showAddForm)}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#0015ff] hover:bg-[#0022ff] text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all shadow-md"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Agregar Ciudad</span>
-              </button>
+            <button
+              type="button"
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#0015ff] hover:bg-[#0022ff] text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all shadow-md cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Agregar Ciudad</span>
+            </button>
           )}
         </div>
       </div>
@@ -286,7 +300,12 @@ export const FutureDestinationsList: React.FC<FutureDestinationsListProps> = ({
 
       {/* Destinations Interactive Table / List */}
       <div className="divide-y divide-neutral-200 bg-white rounded-lg border border-neutral-300 overflow-hidden shadow-sm">
-        {filtered.length === 0 ? (
+        {destinations.length === 0 ? (
+          <div className="p-12 text-center text-neutral-500 font-mono text-xs sm:text-sm">
+            <p className="font-bold text-neutral-800 mb-1">No hay ciudades registradas aún.</p>
+            <p>Haz clic en <span className="text-[#0015ff] font-bold">+ Agregar Ciudad</span> para crear tus primeros destinos personalizados.</p>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="p-8 text-center text-neutral-500 font-mono text-sm">
             No se encontraron ciudades con los filtros seleccionados.
           </div>
@@ -312,12 +331,12 @@ export const FutureDestinationsList: React.FC<FutureDestinationsListProps> = ({
                     onClick={() => {
                       onToggleDestination(dest.id);
                       // If completing, immediately prompt user to upload the ticket card
-                      if (!dest.completed) {
+                      if (!dest.completed && onOpenUploadForDestination) {
                         onOpenUploadForDestination(dest);
                       }
                     }}
                     title={dest.completed ? 'Marcar como pendiente' : '¡Completar destino y subir tarjeta!'}
-                    className="mt-0.5 sm:mt-0 p-1 text-neutral-400 hover:text-[#0015ff] transition-colors focus:outline-none"
+                    className="mt-0.5 sm:mt-0 p-1 text-neutral-400 hover:text-[#0015ff] transition-colors focus:outline-none cursor-pointer"
                   >
                     {dest.completed ? (
                       <CheckCircle2 className="w-6 h-6 text-emerald-600 fill-emerald-100" />
@@ -369,7 +388,7 @@ export const FutureDestinationsList: React.FC<FutureDestinationsListProps> = ({
                       <button
                         type="button"
                         onClick={() => onOpenUploadForDestination(dest)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0015ff] hover:bg-[#0022ff] text-white text-xs font-mono font-bold uppercase tracking-wider rounded transition-all shadow-sm"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0015ff] hover:bg-[#0022ff] text-white text-xs font-mono font-bold uppercase tracking-wider rounded transition-all shadow-sm cursor-pointer"
                       >
                         <Camera className="w-3.5 h-3.5" />
                         <span>{hasTicket ? 'Reemplazar Foto' : 'Subir Tarjeta'}</span>
@@ -377,14 +396,18 @@ export const FutureDestinationsList: React.FC<FutureDestinationsListProps> = ({
                   )}
 
                   {onDeleteDestination && (
-                      <button
-                        type="button"
-                        onClick={() => onDeleteDestination(dest.id)}
-                        title="Eliminar de lista"
-                        className="p-1.5 text-neutral-400 hover:text-red-600 rounded transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteDestination(dest.id);
+                      }}
+                      title={`Eliminar ${dest.city} de la lista`}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-neutral-100 hover:bg-red-50 text-neutral-600 hover:text-red-600 border border-neutral-300 hover:border-red-300 rounded text-xs font-mono font-bold transition-all cursor-pointer shadow-2xs"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                      <span className="hidden sm:inline">Eliminar</span>
+                    </button>
                   )}
                 </div>
               </div>
