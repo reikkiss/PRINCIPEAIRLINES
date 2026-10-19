@@ -8,7 +8,13 @@ import { TicketManagerPage } from './components/TicketManagerPage';
 import { TicketUploadModal } from './components/TicketUploadModal';
 import { LetterEditorModal } from './components/LetterEditorModal';
 import { LetterReaderModal } from './components/LetterReaderModal';
+import { LetterCountdownLockModal } from './components/LetterCountdownLockModal';
+import { isLetterLocked } from './components/LetterCard';
 import { DateLockModal } from './components/DateLockModal';
+import { INITIAL_LETTERS } from './data/lettersData';
+import { INITIAL_TICKETS } from './data/ticketsData';
+import { INITIAL_DESTINATIONS } from './data/destinationsData';
+import { compressImage } from './utils/imageCompressor';
 
 import { BoardingTicket, DestinationItem, TravelLetter, WorldRegion } from './types';
 import { Lock, Unlock } from 'lucide-react';
@@ -32,51 +38,124 @@ export default function App() {
   });
   const [isLockModalOpen, setIsLockModalOpen] = useState<boolean>(false);
 
-  // Tickets state with Firestore persistence
-  const [tickets, setTickets] = useState<BoardingTicket[]>([]);
+  // 1. Tickets state with Firestore persistence & auto-seeding
+  const [tickets, setTickets] = useState<BoardingTicket[]>(INITIAL_TICKETS);
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'tickets'), (snapshot) => {
-      const data = snapshot.docs.map(doc => doc.data() as BoardingTicket);
-      setTickets(data);
+      if (snapshot.empty) {
+        // Automatically seed initial tickets to Firestore
+        INITIAL_TICKETS.forEach(async (t) => {
+          try {
+            await setDoc(doc(db, 'tickets', t.id), JSON.parse(JSON.stringify(t)));
+          } catch (e) {
+            console.error('Error seeding ticket to Firestore:', e);
+          }
+        });
+        setTickets(INITIAL_TICKETS);
+      } else {
+        const data = snapshot.docs.map((doc) => doc.data() as BoardingTicket);
+        setTickets(data);
+      }
+    }, (error) => {
+      console.error('Firestore tickets listener error:', error);
     });
     return unsub;
   }, []);
 
-  // Destinations state with Firestore persistence
-  const [destinations, setDestinations] = useState<DestinationItem[]>([]);
+  // 2. Destinations state with Firestore persistence & auto-seeding
+  const [destinations, setDestinations] = useState<DestinationItem[]>(INITIAL_DESTINATIONS);
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'destinations'), (snapshot) => {
-      const data = snapshot.docs.map(doc => doc.data() as DestinationItem);
-      setDestinations(data);
+      if (snapshot.empty) {
+        // Automatically seed initial destinations to Firestore
+        INITIAL_DESTINATIONS.forEach(async (d) => {
+          try {
+            await setDoc(doc(db, 'destinations', d.id), JSON.parse(JSON.stringify(d)));
+          } catch (e) {
+            console.error('Error seeding destination to Firestore:', e);
+          }
+        });
+        setDestinations(INITIAL_DESTINATIONS);
+      } else {
+        const data = snapshot.docs.map((doc) => doc.data() as DestinationItem);
+        setDestinations(data);
+      }
+    }, (error) => {
+      console.error('Firestore destinations listener error:', error);
     });
     return unsub;
   }, []);
 
-  // Letters state with Firestore persistence
-  const [letters, setLetters] = useState<TravelLetter[]>([]);
+  // 3. Letters state with Firestore persistence & auto-seeding
+  const [letters, setLetters] = useState<TravelLetter[]>(INITIAL_LETTERS);
   useEffect(() => {
-    // Diagnostic connection test
-    import('firebase/firestore').then(({ doc, getDocFromServer }) => {
-        getDocFromServer(doc(db, 'test', 'connection')).catch((e) => console.log('Firestore connection test:', e));
-    });
-
     const unsub = onSnapshot(collection(db, 'letters'), (snapshot) => {
-      const data = snapshot.docs.map(doc => doc.data() as TravelLetter);
-      setLetters(data);
+      if (snapshot.empty) {
+        // Automatically seed initial letters to Firestore
+        INITIAL_LETTERS.forEach(async (l) => {
+          try {
+            await setDoc(doc(db, 'letters', l.id), JSON.parse(JSON.stringify(l)));
+          } catch (e) {
+            console.error('Error seeding letter to Firestore:', e);
+          }
+        });
+        setLetters(INITIAL_LETTERS);
+      } else {
+        const data = snapshot.docs.map((doc) => doc.data() as TravelLetter);
+        setLetters(data);
+      }
+    }, (error) => {
+      console.error('Firestore letters listener error:', error);
     });
     return unsub;
   }, []);
 
-  // Hero image state
-const [heroImage, setHeroImage] = useState<string>(heroImgFile);
-  // Save hero image to localStorage
-  useEffect(() => {
+  // 4. Hero image state with Firestore settings sync & localStorage fallback
+  const [heroImage, setHeroImage] = useState<string>(() => {
     try {
-      localStorage.setItem('principe_hero_image', heroImage);
-    } catch (e) {
-      console.error('Error saving hero image', e);
+      return localStorage.getItem('principe_hero_image') || heroImgFile;
+    } catch {
+      return heroImgFile;
     }
-  }, [heroImage]);
+  });
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'settings', 'hero'), (docSnap) => {
+      if (docSnap.exists() && docSnap.data()?.heroImage) {
+        const cloudImg = docSnap.data().heroImage;
+        setHeroImage(cloudImg);
+        try {
+          localStorage.setItem('principe_hero_image', cloudImg);
+        } catch {}
+      }
+    }, (error) => {
+      console.error('Firestore settings listener error:', error);
+    });
+    return unsub;
+  }, []);
+
+  // Handler to persist hero image directly in Firestore
+  const handleUpdateHeroImage = async (newImage: string) => {
+    try {
+      let finalImg = newImage;
+      if (finalImg.startsWith('data:image') && finalImg.length > 500000) {
+        finalImg = await compressImage(finalImg, 1200, 1200, 0.7);
+      }
+      setHeroImage(finalImg);
+      try {
+        localStorage.setItem('principe_hero_image', finalImg);
+      } catch {}
+
+      await setDoc(doc(db, 'settings', 'hero'), {
+        id: 'hero',
+        heroImage: finalImg,
+        updatedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error('Error saving hero image to Firestore:', error);
+    }
+  };
+
   // Upload/Edit Modal State (only active inside Studio Manager)
   const [uploadModalState, setUploadModalState] = useState<{
     isOpen: boolean;
@@ -88,8 +167,9 @@ const [heroImage, setHeroImage] = useState<string>(heroImgFile);
     mode: 'create',
   });
 
-  // Letter Reader & Editor Modal States
+  // Letter Reader, Countdown Lock & Editor Modal States
   const [selectedLetterForReader, setSelectedLetterForReader] = useState<TravelLetter | null>(null);
+  const [lockedLetterForCountdown, setLockedLetterForCountdown] = useState<TravelLetter | null>(null);
   const [letterEditorState, setLetterEditorState] = useState<{
     isOpen: boolean;
     initialData?: Partial<TravelLetter> | null;
@@ -98,76 +178,102 @@ const [heroImage, setHeroImage] = useState<string>(heroImgFile);
     initialData: null,
   });
 
-  // Handlers for Tickets
+  // Handle opening letter: check if locked with countdown or unlocked
+  const handleOpenLetter = (letter: TravelLetter) => {
+    if (isLetterLocked(letter)) {
+      setLockedLetterForCountdown(letter);
+    } else {
+      setSelectedLetterForReader(letter);
+    }
+  };
 
-
-
-
+  // Handlers for Tickets with Firestore persistence & image safety
   const handleSaveTicket = async (ticket: BoardingTicket) => {
     try {
+      let finalTicket = { ...ticket };
+
+      // Ensure photoUrl is compressed if it exceeds 500KB to prevent Firestore 1MB document errors
+      if (finalTicket.photoUrl && finalTicket.photoUrl.startsWith('data:image') && finalTicket.photoUrl.length > 500000) {
+        finalTicket.photoUrl = await compressImage(finalTicket.photoUrl, 900, 900, 0.65);
+      }
+
+      // Optimistic local update
+      setTickets((prev) => {
+        const idx = prev.findIndex((t) => t.id === finalTicket.id);
+        if (idx >= 0) {
+          const updated = [...prev];
+          updated[idx] = finalTicket;
+          return updated;
+        }
+        return [finalTicket, ...prev];
+      });
+
       // Remove undefined values to prevent Firestore errors
-      const sanitizedTicket = JSON.parse(JSON.stringify(ticket));
-      await setDoc(doc(db, 'tickets', ticket.id), sanitizedTicket);
+      const sanitizedTicket = JSON.parse(JSON.stringify(finalTicket));
+      await setDoc(doc(db, 'tickets', finalTicket.id), sanitizedTicket);
 
       // Also ensure corresponding destination exists and is synced in destinations collection
-      if (ticket.destinationCode && ticket.destinationCity) {
-        const destCodeUpper = ticket.destinationCode.toUpperCase().trim();
+      if (finalTicket.destinationCode && finalTicket.destinationCity) {
+        const destCodeUpper = finalTicket.destinationCode.toUpperCase().trim();
         const existingDest = destinations.find(
-          d => d.associatedTicketId === ticket.id || d.code.toUpperCase() === destCodeUpper
+          (d) => d.associatedTicketId === finalTicket.id || d.code.toUpperCase() === destCodeUpper
         );
 
         if (existingDest) {
           const updatedDest = {
             ...existingDest,
-            city: ticket.destinationCity,
+            city: finalTicket.destinationCity,
             code: destCodeUpper,
-            country: ticket.destinationCountry || existingDest.country,
-            region: (ticket.destinationRegion as WorldRegion) || existingDest.region,
-            associatedTicketId: ticket.id,
+            country: finalTicket.destinationCountry || existingDest.country,
+            region: (finalTicket.destinationRegion as WorldRegion) || existingDest.region,
+            associatedTicketId: finalTicket.id,
             completed: true,
             completedDate: existingDest.completedDate || new Date().toISOString().split('T')[0],
-            lat: ticket.destinationLat ?? ticket.lat ?? existingDest.lat,
-            lng: ticket.destinationLng ?? ticket.lng ?? existingDest.lng,
+            lat: finalTicket.destinationLat ?? finalTicket.lat ?? existingDest.lat,
+            lng: finalTicket.destinationLng ?? finalTicket.lng ?? existingDest.lng,
           };
           await setDoc(doc(db, 'destinations', existingDest.id), JSON.parse(JSON.stringify(updatedDest)));
         } else {
-          const newDestId = `dest-${ticket.id}`;
+          const newDestId = `dest-${finalTicket.id}`;
           const newDest: DestinationItem = {
             id: newDestId,
-            city: ticket.destinationCity,
+            city: finalTicket.destinationCity,
             code: destCodeUpper,
-            country: ticket.destinationCountry || 'International',
-            region: (ticket.destinationRegion as WorldRegion) || 'Europe',
+            country: finalTicket.destinationCountry || 'International',
+            region: (finalTicket.destinationRegion as WorldRegion) || 'Europe',
             completed: true,
             completedDate: new Date().toISOString().split('T')[0],
-            associatedTicketId: ticket.id,
+            associatedTicketId: finalTicket.id,
             experienceNotes: 'Boleto registrado y experiencia de viaje.',
-            lat: ticket.destinationLat ?? ticket.lat ?? 0,
-            lng: ticket.destinationLng ?? ticket.lng ?? 0,
+            lat: finalTicket.destinationLat ?? finalTicket.lat ?? 0,
+            lng: finalTicket.destinationLng ?? finalTicket.lng ?? 0,
           };
           await setDoc(doc(db, 'destinations', newDestId), JSON.parse(JSON.stringify(newDest)));
         }
       }
     } catch (error) {
-      console.error("Error saving ticket", error);
+      console.error('Error saving ticket to Firestore:', error);
+      alert('Error al guardar el boleto en la base de datos. Por favor verifica tu conexión.');
     }
   };
 
   const handleDeleteTicket = async (ticketId: string) => {
     try {
+      setTickets((prev) => prev.filter((t) => t.id !== ticketId));
       await deleteDoc(doc(db, 'tickets', ticketId));
       // Delete any destination that was exclusively tied to this ticket
-      const tiedDest = destinations.find(d => d.associatedTicketId === ticketId || d.id === `dest-${ticketId}`);
+      const tiedDest = destinations.find((d) => d.associatedTicketId === ticketId || d.id === `dest-${ticketId}`);
       if (tiedDest) {
+        setDestinations((prev) => prev.filter((d) => d.id !== tiedDest.id));
         await deleteDoc(doc(db, 'destinations', tiedDest.id));
       }
     } catch (error) {
-      console.error("Error deleting ticket", error);
+      console.error('Error deleting ticket from Firestore:', error);
     }
   };
 
   const handleToggleDestination = async (destId: string) => {
-    const dest = destinations.find(d => d.id === destId);
+    const dest = destinations.find((d) => d.id === destId);
     if (!dest) return;
     try {
       const updatedDest = {
@@ -175,46 +281,66 @@ const [heroImage, setHeroImage] = useState<string>(heroImgFile);
         completed: !dest.completed,
         completedDate: !dest.completed ? new Date().toISOString().split('T')[0] : null,
       };
-      // Explicitly remove undefined fields if any (though structured object here)
+      setDestinations((prev) => prev.map((d) => (d.id === destId ? updatedDest : d)));
       const sanitizedDest = JSON.parse(JSON.stringify(updatedDest));
       await setDoc(doc(db, 'destinations', destId), sanitizedDest);
     } catch (error) {
-      console.error("Error toggling destination", error);
+      console.error('Error toggling destination in Firestore:', error);
     }
   };
 
   const handleAddDestination = async (newDest: Omit<DestinationItem, 'id'>) => {
     const id = `dest-${Date.now()}`;
     try {
-      const sanitizedDest = JSON.parse(JSON.stringify({ ...newDest, id }));
+      const fullDest = { ...newDest, id };
+      setDestinations((prev) => [...prev, fullDest]);
+      const sanitizedDest = JSON.parse(JSON.stringify(fullDest));
       await setDoc(doc(db, 'destinations', id), sanitizedDest);
     } catch (error) {
-      console.error("Error adding destination", error);
+      console.error('Error adding destination to Firestore:', error);
     }
   };
 
   const handleDeleteDestination = async (destId: string) => {
     try {
+      setDestinations((prev) => prev.filter((d) => d.id !== destId));
       await deleteDoc(doc(db, 'destinations', destId));
     } catch (error) {
-      console.error("Error deleting destination", error);
+      console.error('Error deleting destination from Firestore:', error);
     }
   };
 
   const handleSaveLetter = async (letter: TravelLetter) => {
     try {
-      const sanitizedLetter = JSON.parse(JSON.stringify(letter));
-      await setDoc(doc(db, 'letters', letter.id), sanitizedLetter);
+      let finalLetter = { ...letter };
+      if (finalLetter.photoUrl && finalLetter.photoUrl.startsWith('data:image') && finalLetter.photoUrl.length > 500000) {
+        finalLetter.photoUrl = await compressImage(finalLetter.photoUrl, 900, 900, 0.65);
+      }
+
+      setLetters((prev) => {
+        const idx = prev.findIndex((l) => l.id === finalLetter.id);
+        if (idx >= 0) {
+          const updated = [...prev];
+          updated[idx] = finalLetter;
+          return updated;
+        }
+        return [finalLetter, ...prev];
+      });
+
+      const sanitizedLetter = JSON.parse(JSON.stringify(finalLetter));
+      await setDoc(doc(db, 'letters', finalLetter.id), sanitizedLetter);
     } catch (error) {
-      console.error("Error saving letter", error);
+      console.error('Error saving letter to Firestore:', error);
+      alert('Error al guardar la carta en la base de datos.');
     }
   };
 
   const handleDeleteLetter = async (letterId: string) => {
     try {
+      setLetters((prev) => prev.filter((l) => l.id !== letterId));
       await deleteDoc(doc(db, 'letters', letterId));
     } catch (error) {
-      console.error("Error deleting letter", error);
+      console.error('Error deleting letter from Firestore:', error);
     }
   };
 
@@ -316,7 +442,7 @@ const [heroImage, setHeroImage] = useState<string>(heroImgFile);
             {/* Section 4: Registro de Cartas Postales & Correspondencia */}
             <LettersRegistrySection
               letters={letters}
-              onOpenLetterReader={(letter) => setSelectedLetterForReader(letter)}
+              onOpenLetterReader={(letter) => handleOpenLetter(letter)}
             />
 
             {/* Section 5: Future Destinations & Cities Checklist (Read-only on main page, no add/upload buttons) */}
@@ -339,7 +465,7 @@ const [heroImage, setHeroImage] = useState<string>(heroImgFile);
               destinations={destinations}
               letters={letters}
               heroImage={heroImage}
-              onUpdateHeroImage={setHeroImage}
+              onUpdateHeroImage={handleUpdateHeroImage}
               onAddTicket={(newTicket) => handleSaveTicket(newTicket)}
               onUpdateTicket={(updated) => handleSaveTicket(updated)}
               onDeleteTicket={handleDeleteTicket}
@@ -355,7 +481,7 @@ const [heroImage, setHeroImage] = useState<string>(heroImgFile);
               onUpdateLetter={handleSaveLetter}
               onDeleteLetter={handleDeleteLetter}
               onOpenLetterEditor={(prefill) => setLetterEditorState({ isOpen: true, initialData: prefill || null })}
-              onOpenLetterReader={(letter) => setSelectedLetterForReader(letter)}
+              onOpenLetterReader={(letter) => handleOpenLetter(letter)}
               onBackToMain={() => {
                 setCurrentPage('main');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -381,7 +507,7 @@ const [heroImage, setHeroImage] = useState<string>(heroImgFile);
           mode={uploadModalState.mode}
         />
 
-        {/* Letter Editor Modal (Create/Edit Travel Letter) */}
+        {/* Letter Editor Modal (Create/Edit Travel Letter with Apple Music & Countdown Lock) */}
         <LetterEditorModal
           isOpen={letterEditorState.isOpen}
           initialData={letterEditorState.initialData}
@@ -394,6 +520,17 @@ const [heroImage, setHeroImage] = useState<string>(heroImgFile);
           letter={selectedLetterForReader}
           isOpen={!!selectedLetterForReader}
           onClose={() => setSelectedLetterForReader(null)}
+        />
+
+        {/* Letter Countdown Lock Modal (Enforces lock until specified date) */}
+        <LetterCountdownLockModal
+          letter={lockedLetterForCountdown}
+          isOpen={!!lockedLetterForCountdown}
+          onClose={() => setLockedLetterForCountdown(null)}
+          onOpenLetter={(letter) => {
+            setLockedLetterForCountdown(null);
+            setSelectedLetterForReader(letter);
+          }}
         />
       </div>
     </div>

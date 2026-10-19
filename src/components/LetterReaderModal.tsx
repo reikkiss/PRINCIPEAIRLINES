@@ -1,6 +1,7 @@
 import React from 'react';
 import { LoveLetter } from '../types';
-import { X, Crown, Heart, Calendar, Printer, Sparkles } from 'lucide-react';
+import { AppleMusicPlayer } from './AppleMusicPlayer';
+import { X, Crown, Heart, Calendar, Printer, Sparkles, Music } from 'lucide-react';
 
 interface LetterReaderModalProps {
   letter: LoveLetter | null;
@@ -75,9 +76,10 @@ export const LetterReaderModal: React.FC<LetterReaderModalProps> = ({
                 <span>Fecha: <strong className="text-[#0E2340]">{formatDate(letter.date)}</strong></span>
               </div>
 
-              {letter.specialSong && (
-                <div className="text-[11px] font-mono text-[#E05A36] italic">
-                  🎵 {letter.specialSong}
+              {letter.specialSong && !letter.appleMusicTrack && (
+                <div className="text-[11px] font-mono text-[#E05A36] italic flex items-center gap-1">
+                  <Music className="w-3.5 h-3.5" />
+                  <span>{letter.specialSong}</span>
                 </div>
               )}
             </div>
@@ -105,6 +107,13 @@ export const LetterReaderModal: React.FC<LetterReaderModalProps> = ({
               <span>De: <strong className="text-[#0E2340] font-bold">{letter.sender}</strong></span>
             </div>
           </div>
+
+          {/* Dedication Apple Music Track Player */}
+          {letter.appleMusicTrack && (
+            <div className="my-2">
+              <AppleMusicPlayer track={letter.appleMusicTrack} variant="full" />
+            </div>
+          )}
 
           {/* Letter Body & Couple Photo Layout */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start pt-2">

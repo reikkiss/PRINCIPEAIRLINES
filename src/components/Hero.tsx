@@ -22,13 +22,13 @@ export const Hero: React.FC<HeroProps> = ({
       <HeroStickers onScrollToSection={onScrollToSection} />
 
       {/* Main Content Container */}
-      <div className="relative z-20 max-w-5xl w-full mx-auto text-center flex flex-col items-center">
+      <div className="relative z-20 max-w-6xl w-full mx-auto text-center flex flex-col items-center">
         {/* The Hero Image: Styled in a Roman Arch Frame with Terracotta & Scalloped Accents */}
-        <div className="w-full relative group max-w-4xl">
+        <div className="w-full relative group max-w-5xl">
           {/* Background Decorative Candy-Stripe & Scalloped Border Silhouette */}
-          <div className="absolute -inset-2.5 rounded-t-[4rem] rounded-b-2xl bg-gradient-to-r from-[#E05A36] via-[#F4A62A] to-[#0E2340] opacity-80 blur-xs -z-10 group-hover:opacity-100 transition-opacity" />
+          <div className="absolute -inset-3 rounded-t-[4.2rem] rounded-b-2xl bg-gradient-to-r from-[#E05A36] via-[#F4A62A] to-[#0E2340] opacity-80 blur-xs -z-10 group-hover:opacity-100 transition-opacity" />
 
-          <div className="relative w-full aspect-[3/4] sm:aspect-[16/10] md:aspect-[16/9] min-h-[480px] sm:min-h-[640px] md:min-h-[760px] max-h-[880px] rounded-t-[3.8rem] rounded-b-2xl overflow-hidden shadow-2xl border-4 border-white bg-[#0E2340]">
+          <div className="relative w-full aspect-[3/4] sm:aspect-[4/3] md:aspect-[16/12] lg:aspect-[16/11] min-h-[620px] sm:min-h-[780px] md:min-h-[920px] lg:min-h-[1050px] max-h-[1200px] rounded-t-[4rem] rounded-b-2xl overflow-hidden shadow-2xl border-4 border-white bg-[#0E2340]">
             <img
               src={heroImgSrc}
               alt="Principe Airlines - Mediterranean Love Stationery, Cartas de Amor & Boletos"

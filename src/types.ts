@@ -84,6 +84,16 @@ export interface DestinationItem {
   lng: number;
 }
 
+export interface AppleMusicTrack {
+  id: string | number;
+  title: string;
+  artist: string;
+  album?: string;
+  artworkUrl?: string;
+  previewUrl?: string; // 30s AAC audio preview
+  appleMusicUrl?: string; // Link to song in Apple Music
+}
+
 export interface LoveLetter {
   id: string;
   title: string;
@@ -99,6 +109,9 @@ export interface LoveLetter {
   waxSealColor?: 'crimson' | 'gold' | 'rose' | 'navy';
   mood?: 'romantica' | 'nostalgica' | 'divertida' | 'para-siempre' | 'aniversario';
   specialSong?: string;
+  appleMusicTrack?: AppleMusicTrack; // Apple Music track information & playable preview
+  isLockedUntilDate?: boolean;       // Bloquear carta con cuenta regresiva
+  unlockDate?: string;              // Fecha y hora exacta de desbloqueo (ISO string)
   createdAt: string;
 }
 

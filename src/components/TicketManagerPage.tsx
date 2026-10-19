@@ -3,6 +3,7 @@ import { BoardingTicket, DestinationItem, TravelLetter } from '../types';
 import { TicketCard } from './TicketCard';
 import { LetterCard } from './LetterCard';
 import { FutureDestinationsList } from './FutureDestinationsList';
+import { compressImage } from '../utils/imageCompressor';
 import { 
   Upload, 
   Plus, 
@@ -554,16 +555,17 @@ export const TicketManagerPage: React.FC<TicketManagerPageProps> = ({
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          const reader = new FileReader();
-                          reader.onload = (ev) => {
-                            if (ev.target?.result && onUpdateHeroImage) {
-                              onUpdateHeroImage(ev.target.result as string);
+                          try {
+                            const compressed = await compressImage(file, 1200, 1200, 0.75);
+                            if (compressed && onUpdateHeroImage) {
+                              onUpdateHeroImage(compressed);
                             }
-                          };
-                          reader.readAsDataURL(file);
+                          } catch (err) {
+                            console.error('Error compressing hero image', err);
+                          }
                         }
                       }}
                       className="hidden"

@@ -4,6 +4,7 @@ import { TicketCard } from './TicketCard';
 import { X, Upload, Camera, Sparkles, Check, RefreshCw, MapPin, Globe } from 'lucide-react';
 import { CityAutocompleteInput } from './CityAutocompleteInput';
 import { AirportItem, getAirportByCode } from '../utils/airportLookup';
+import { compressImage } from '../utils/imageCompressor';
 
 interface TicketUploadModalProps {
   isOpen: boolean;
@@ -138,17 +139,16 @@ export const TicketUploadModal: React.FC<TicketUploadModalProps> = ({
 
   if (!isOpen) return null;
 
-  // File Upload Handler (FileReader base64)
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // File Upload Handler with automatic client-side compression to satisfy Firestore 1MB limits
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setPhotoUrl(event.target.result as string);
-        }
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressed = await compressImage(file, 1024, 1024, 0.75);
+        setPhotoUrl(compressed);
+      } catch (err) {
+        console.error('Error compressing image', err);
+      }
     }
   };
 
@@ -157,8 +157,14 @@ export const TicketUploadModal: React.FC<TicketUploadModalProps> = ({
     setBarcode2(Math.floor(100000000000 + Math.random() * 900000000000).toString());
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Ensure photoUrl is compressed if it's a large base64 image
+    let finalPhoto = photoUrl;
+    if (finalPhoto && finalPhoto.startsWith('data:image') && finalPhoto.length > 500000) {
+      finalPhoto = await compressImage(finalPhoto, 900, 900, 0.65);
+    }
 
     const ticketToSave: BoardingTicket = {
       id: initialData?.id || `ticket-${Date.now()}`,
@@ -182,7 +188,7 @@ export const TicketUploadModal: React.FC<TicketUploadModalProps> = ({
       returnDate: returnDate || undefined,
       packageContents: packageContents.toUpperCase().trim(),
       forRecipient: forRecipient.toUpperCase().trim(),
-      photoUrl,
+      photoUrl: finalPhoto,
       photoFilter,
       barcode1,
       barcode2,

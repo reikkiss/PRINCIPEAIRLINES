@@ -10,9 +10,14 @@
         "statusColor": { "type": "string" },
         "departingCode": { "type": "string" },
         "departingCity": { "type": "string" },
+        "departingCountry": { "type": "string" },
+        "departingRegion": { "type": "string" },
         "destinationCode": { "type": "string" },
         "destinationCity": { "type": "string" },
+        "destinationCountry": { "type": "string" },
+        "destinationRegion": { "type": "string" },
         "departingDate": { "type": "string" },
+        "returnDate": { "type": "string" },
         "packageContents": { "type": "string" },
         "forRecipient": { "type": "string" },
         "photoUrl": { "type": "string" },
@@ -20,7 +25,16 @@
         "barcode1": { "type": "string" },
         "barcode2": { "type": "string" },
         "carrierName": { "type": "string" },
+        "campaignLabel": { "type": "string" },
+        "seatOrGate": { "type": "string" },
         "flightNumber": { "type": "string" },
+        "experienceStory": { "type": "string" },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "departingLat": { "type": "number" },
+        "departingLng": { "type": "number" },
+        "destinationLat": { "type": "number" },
+        "destinationLng": { "type": "number" },
         "createdAt": { "type": "string" }
       },
       "required": ["id", "packageContents", "forRecipient", "createdAt"]
@@ -47,16 +61,40 @@
     },
     "TravelLetter": {
       "title": "TravelLetter",
-      "description": "Represents a love letter.",
+      "description": "Represents a love letter with optional Apple Music track and countdown locking.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
         "title": { "type": "string" },
-        "content": { "type": "string" },
         "recipient": { "type": "string" },
+        "sender": { "type": "string" },
+        "date": { "type": "string" },
+        "originCity": { "type": "string" },
+        "destinationCity": { "type": "string" },
+        "content": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "paperStyle": { "type": "string" },
+        "stampType": { "type": "string" },
+        "waxSealColor": { "type": "string" },
+        "mood": { "type": "string" },
+        "specialSong": { "type": "string" },
+        "appleMusicTrack": { "type": "object" },
+        "isLockedUntilDate": { "type": "boolean" },
+        "unlockDate": { "type": "string" },
         "createdAt": { "type": "string" }
       },
-      "required": ["id", "title", "content", "createdAt"]
+      "required": ["id", "title", "content", "recipient", "createdAt"]
+    },
+    "AppSetting": {
+      "title": "AppSetting",
+      "description": "Represents application settings and customizations like hero photo.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "heroImage": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id"]
     }
   },
   "firestore": {
@@ -71,6 +109,10 @@
     "letters/{letterId}": {
       "schema": "TravelLetter",
       "description": "Collection of love letters."
+    },
+    "settings/{settingId}": {
+      "schema": "AppSetting",
+      "description": "Collection of app settings."
     }
   }
 }
