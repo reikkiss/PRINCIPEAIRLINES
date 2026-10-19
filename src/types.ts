@@ -60,6 +60,10 @@ export interface BoardingTicket {
   experienceStory?: string;
   lat?: number;
   lng?: number;
+  departingLat?: number;
+  departingLng?: number;
+  destinationLat?: number;
+  destinationLng?: number;
   createdAt: string;
 }
 

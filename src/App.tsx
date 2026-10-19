@@ -10,7 +10,7 @@ import { LetterEditorModal } from './components/LetterEditorModal';
 import { LetterReaderModal } from './components/LetterReaderModal';
 import { DateLockModal } from './components/DateLockModal';
 
-import { BoardingTicket, DestinationItem, TravelLetter } from './types';
+import { BoardingTicket, DestinationItem, TravelLetter, WorldRegion } from './types';
 import { Lock, Unlock } from 'lucide-react';
 import { db } from './firebase';
 import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
@@ -108,6 +108,46 @@ const [heroImage, setHeroImage] = useState<string>(heroImgFile);
       // Remove undefined values to prevent Firestore errors
       const sanitizedTicket = JSON.parse(JSON.stringify(ticket));
       await setDoc(doc(db, 'tickets', ticket.id), sanitizedTicket);
+
+      // Also ensure corresponding destination exists and is synced in destinations collection
+      if (ticket.destinationCode && ticket.destinationCity) {
+        const destCodeUpper = ticket.destinationCode.toUpperCase().trim();
+        const existingDest = destinations.find(
+          d => d.associatedTicketId === ticket.id || d.code.toUpperCase() === destCodeUpper
+        );
+
+        if (existingDest) {
+          const updatedDest = {
+            ...existingDest,
+            city: ticket.destinationCity,
+            code: destCodeUpper,
+            country: ticket.destinationCountry || existingDest.country,
+            region: (ticket.destinationRegion as WorldRegion) || existingDest.region,
+            associatedTicketId: ticket.id,
+            completed: true,
+            completedDate: existingDest.completedDate || new Date().toISOString().split('T')[0],
+            lat: ticket.destinationLat ?? ticket.lat ?? existingDest.lat,
+            lng: ticket.destinationLng ?? ticket.lng ?? existingDest.lng,
+          };
+          await setDoc(doc(db, 'destinations', existingDest.id), JSON.parse(JSON.stringify(updatedDest)));
+        } else {
+          const newDestId = `dest-${ticket.id}`;
+          const newDest: DestinationItem = {
+            id: newDestId,
+            city: ticket.destinationCity,
+            code: destCodeUpper,
+            country: ticket.destinationCountry || 'International',
+            region: (ticket.destinationRegion as WorldRegion) || 'Europe',
+            completed: true,
+            completedDate: new Date().toISOString().split('T')[0],
+            associatedTicketId: ticket.id,
+            experienceNotes: 'Boleto registrado y experiencia de viaje.',
+            lat: ticket.destinationLat ?? ticket.lat ?? 0,
+            lng: ticket.destinationLng ?? ticket.lng ?? 0,
+          };
+          await setDoc(doc(db, 'destinations', newDestId), JSON.parse(JSON.stringify(newDest)));
+        }
+      }
     } catch (error) {
       console.error("Error saving ticket", error);
     }
@@ -116,6 +156,11 @@ const [heroImage, setHeroImage] = useState<string>(heroImgFile);
   const handleDeleteTicket = async (ticketId: string) => {
     try {
       await deleteDoc(doc(db, 'tickets', ticketId));
+      // Delete any destination that was exclusively tied to this ticket
+      const tiedDest = destinations.find(d => d.associatedTicketId === ticketId || d.id === `dest-${ticketId}`);
+      if (tiedDest) {
+        await deleteDoc(doc(db, 'destinations', tiedDest.id));
+      }
     } catch (error) {
       console.error("Error deleting ticket", error);
     }

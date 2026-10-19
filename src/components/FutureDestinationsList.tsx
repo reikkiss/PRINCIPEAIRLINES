@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { DestinationItem, WorldRegion, BoardingTicket } from '../types';
 import { CheckCircle2, Circle, Plus, Camera, MapPin, Calendar, Sparkles, Filter, Trash2 } from 'lucide-react';
+import { CityAutocompleteInput } from './CityAutocompleteInput';
+import { AirportItem, getAirportByCode } from '../utils/airportLookup';
 
 interface FutureDestinationsListProps {
   destinations: DestinationItem[];
@@ -28,30 +30,54 @@ export const FutureDestinationsList: React.FC<FutureDestinationsListProps> = ({
   const [newCountry, setNewCountry] = useState('');
   const [newCode, setNewCode] = useState('');
   const [newRegion, setNewRegion] = useState<WorldRegion>('Europe');
+  const [newLat, setNewLat] = useState<number>(0);
+  const [newLng, setNewLng] = useState<number>(0);
   const [newDate, setNewDate] = useState('');
   const [newNotes, setNewNotes] = useState('');
+
+  const handleSelectAirport = (airport: AirportItem) => {
+    setNewCity(airport.city);
+    setNewCode(airport.iata);
+    setNewCountry(airport.country);
+    setNewRegion(airport.region);
+    setNewLat(airport.lat);
+    setNewLng(airport.lng);
+  };
+
+  const handleCodeChange = (rawCode: string) => {
+    const code = rawCode.toUpperCase().slice(0, 4);
+    setNewCode(code);
+    if (code.length === 3) {
+      const match = getAirportByCode(code);
+      if (match) handleSelectAirport(match);
+    }
+  };
 
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCity || !newCode) return;
 
-    onAddDestination({
-      city: newCity,
-      country: newCountry || 'International',
-      code: newCode.toUpperCase().trim(),
-      region: newRegion,
-      completed: false,
-      targetDate: newDate || new Date().toISOString().split('T')[0],
-      experienceNotes: newNotes || 'Nuevas experiencias y registro fotográfico.',
-      lat: 0,
-      lng: 0,
-    });
+    if (onAddDestination) {
+      onAddDestination({
+        city: newCity,
+        country: newCountry || 'International',
+        code: newCode.toUpperCase().trim(),
+        region: newRegion,
+        completed: false,
+        targetDate: newDate || new Date().toISOString().split('T')[0],
+        experienceNotes: newNotes || 'Nuevas experiencias y registro fotográfico.',
+        lat: newLat,
+        lng: newLng,
+      });
+    }
 
     // Reset form
     setNewCity('');
     setNewCountry('');
     setNewCode('');
     setNewNotes('');
+    setNewLat(0);
+    setNewLng(0);
     setShowAddForm(false);
   };
 
@@ -122,49 +148,28 @@ export const FutureDestinationsList: React.FC<FutureDestinationsListProps> = ({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-            <div>
-              <label className="block font-bold text-neutral-700 mb-1">Código Aeropuerto (IATA) *</label>
-              <input
-                type="text"
-                maxLength={4}
-                placeholder="Ej. NRT, FLR"
-                value={newCode}
-                onChange={(e) => setNewCode(e.target.value.toUpperCase().trim())}
+            <div className="sm:col-span-2">
+              <CityAutocompleteInput
+                label="Ciudad / Destino"
+                value={newCity}
+                onChange={(c) => setNewCity(c)}
+                onSelectAirport={handleSelectAirport}
+                placeholder="Buscar ciudad (ej. Florencia, Tokio, París, Roma)..."
                 required
-                className="w-full px-3 py-2 border rounded border-neutral-300 focus:outline-none focus:border-[#0015ff] font-mono uppercase"
+                isDark={false}
               />
             </div>
 
             <div>
-              <label className="block font-bold text-neutral-700 mb-1">Ciudad *</label>
+              <label className="block font-bold text-neutral-700 mb-1">Código (IATA) *</label>
               <input
                 type="text"
-                placeholder="Ej. Tokio, Florencia"
-                value={newCity}
-                onChange={(e) => setNewCity(e.target.value)}
-                onBlur={async () => {
-                    if (!newCity) return;
-                    try {
-                      const res = await fetch(`/api/airport-lookup?city=${encodeURIComponent(newCity)}`);
-                      if (!res.ok) return;
-                      const data = await res.json();
-                      if (data && data.length > 0) {
-                        const airport = data[0];
-                        setNewCode(airport.iata_code || airport.icao_code || '');
-                        setNewCountry(airport.country_name || '');
-                        
-                        const country = airport.country_name.toLowerCase();
-                        if (['france', 'spain', 'italy', 'germany', 'united kingdom'].includes(country)) setNewRegion('Europe');
-                        else if (['japan', 'china', 'south korea', 'thailand'].includes(country)) setNewRegion('Asia');
-                        else if (['usa', 'canada', 'brazil', 'argentina'].includes(country)) setNewRegion('Americas');
-                        else setNewRegion('Europe'); 
-                      }
-                    } catch (e) {
-                      console.error('Failed to lookup airport', e);
-                    }
-                }}
+                maxLength={4}
+                placeholder="Ej. FLR, NRT, CDG"
+                value={newCode}
+                onChange={(e) => handleCodeChange(e.target.value)}
                 required
-                className="w-full px-3 py-2 border rounded border-neutral-300 focus:outline-none focus:border-[#0015ff]"
+                className="w-full px-3 py-1.5 border rounded border-neutral-300 focus:outline-none focus:border-[#0015ff] font-mono font-bold uppercase tracking-wider text-neutral-900 text-xs"
               />
             </div>
 
@@ -172,10 +177,10 @@ export const FutureDestinationsList: React.FC<FutureDestinationsListProps> = ({
               <label className="block font-bold text-neutral-700 mb-1">País</label>
               <input
                 type="text"
-                placeholder="Ej. Japón, Italia"
+                placeholder="Ej. Italia, Japón"
                 value={newCountry}
                 onChange={(e) => setNewCountry(e.target.value)}
-                className="w-full px-3 py-2 border rounded border-neutral-300 focus:outline-none focus:border-[#0015ff]"
+                className="w-full px-3 py-1.5 border rounded border-neutral-300 focus:outline-none focus:border-[#0015ff] text-neutral-900 text-xs"
               />
             </div>
 
@@ -184,7 +189,7 @@ export const FutureDestinationsList: React.FC<FutureDestinationsListProps> = ({
               <select
                 value={newRegion}
                 onChange={(e) => setNewRegion(e.target.value as WorldRegion)}
-                className="w-full px-3 py-2 border rounded border-neutral-300 focus:outline-none focus:border-[#0015ff]"
+                className="w-full px-3 py-1.5 border rounded border-neutral-300 focus:outline-none focus:border-[#0015ff] text-neutral-900 text-xs font-mono"
               >
                 <option value="Europe">Europe</option>
                 <option value="Asia">Asia</option>

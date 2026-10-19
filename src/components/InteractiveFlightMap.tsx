@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { BoardingTicket, DestinationItem } from '../types';
+import { getAirportByCode, getAirportByCity } from '../utils/airportLookup';
 
 interface InteractiveFlightMapProps {
   tickets: BoardingTicket[];
@@ -24,6 +25,143 @@ export const InteractiveFlightMap: React.FC<InteractiveFlightMapProps> = ({
         t.destinationCode.toUpperCase() === dest.code.toUpperCase()
     );
   };
+
+  // Dynamic Flight Arcs and Nodes computed strictly from real tickets and destinations in database
+  const { flightRoutes, mapNodes } = useMemo(() => {
+    const routes: {
+      id: string;
+      ox: number;
+      oy: number;
+      dx: number;
+      dy: number;
+      mx: number;
+      my: number;
+      ticket: BoardingTicket;
+    }[] = [];
+
+    const nodesMap = new Map<string, {
+      code: string;
+      city: string;
+      country?: string;
+      x: number;
+      y: number;
+      isOrigin: boolean;
+      ticket?: BoardingTicket;
+    }>();
+
+    // Helper to calculate SVG (x, y) from coordinates
+    const toCoords = (lat: number, lng: number) => {
+      const x = ((lng + 180) / 360) * 1000;
+      const y = ((90 - lat) / 180) * 500;
+      return { x, y };
+    };
+
+    // Helper to get coordinates for city/code
+    const getCoords = (code: string, city: string, savedLat?: number, savedLng?: number) => {
+      if (savedLat !== undefined && savedLng !== undefined && (savedLat !== 0 || savedLng !== 0)) {
+        return { lat: savedLat, lng: savedLng };
+      }
+      const fromCode = getAirportByCode(code);
+      if (fromCode) return { lat: fromCode.lat, lng: fromCode.lng };
+      const fromCity = getAirportByCity(city);
+      if (fromCity) return { lat: fromCity.lat, lng: fromCity.lng };
+      return null;
+    };
+
+    // 1. Process all tickets in the database
+    tickets.forEach((ticket) => {
+      const origin = getCoords(
+        ticket.departingCode,
+        ticket.departingCity,
+        ticket.departingLat,
+        ticket.departingLng
+      );
+      const dest = getCoords(
+        ticket.destinationCode,
+        ticket.destinationCity,
+        ticket.destinationLat ?? ticket.lat,
+        ticket.destinationLng ?? ticket.lng
+      );
+
+      if (origin) {
+        const { x, y } = toCoords(origin.lat, origin.lng);
+        const origCode = ticket.departingCode.toUpperCase();
+        if (!nodesMap.has(origCode)) {
+          nodesMap.set(origCode, {
+            code: origCode,
+            city: ticket.departingCity,
+            country: ticket.departingCountry,
+            x,
+            y,
+            isOrigin: true,
+            ticket,
+          });
+        }
+      }
+
+      if (dest) {
+        const { x, y } = toCoords(dest.lat, dest.lng);
+        const destCode = ticket.destinationCode.toUpperCase();
+        nodesMap.set(destCode, {
+          code: destCode,
+          city: ticket.destinationCity,
+          country: ticket.destinationCountry,
+          x,
+          y,
+          isOrigin: false,
+          ticket,
+        });
+      }
+
+      if (origin && dest) {
+        const oSvg = toCoords(origin.lat, origin.lng);
+        const dSvg = toCoords(dest.lat, dest.lng);
+        const mx = (oSvg.x + dSvg.x) / 2;
+        const distance = Math.hypot(dSvg.x - oSvg.x, dSvg.y - oSvg.y);
+        const curveOffset = Math.min(80, Math.max(25, distance * 0.22));
+        const my = Math.min(oSvg.y, dSvg.y) - curveOffset;
+
+        routes.push({
+          id: ticket.id,
+          ox: oSvg.x,
+          oy: oSvg.y,
+          dx: dSvg.x,
+          dy: dSvg.y,
+          mx,
+          my,
+          ticket,
+        });
+      }
+    });
+
+    // 2. Process all destinations in the database
+    destinations.forEach((dest) => {
+      const coords = getCoords(dest.code, dest.city, dest.lat, dest.lng);
+      if (coords) {
+        const { x, y } = toCoords(coords.lat, coords.lng);
+        const codeUpper = dest.code.toUpperCase();
+        if (!nodesMap.has(codeUpper)) {
+          const matchedTicket = tickets.find(
+            (t) => t.id === dest.associatedTicketId || t.destinationCode.toUpperCase() === codeUpper
+          );
+          nodesMap.set(codeUpper, {
+            code: codeUpper,
+            city: dest.city,
+            country: dest.country,
+            x,
+            y,
+            isOrigin: false,
+            ticket: matchedTicket,
+          });
+        }
+      }
+    });
+
+    return {
+      flightRoutes: routes,
+      mapNodes: Array.from(nodesMap.values()),
+    };
+  }, [tickets, destinations]);
 
   return (
     <div className="relative w-full min-h-[75vh] sm:min-h-[85vh] bg-[#000000] text-white overflow-hidden flex flex-col justify-center items-center py-6 px-2 sm:px-6">
@@ -186,146 +324,109 @@ export const InteractiveFlightMap: React.FC<InteractiveFlightMapProps> = ({
             />
           </g>
 
-          {/* GLOWING FLIGHT TRAJECTORIES (From New Zealand through Singapore to Global Hubs) */}
+          {/* DYNAMIC GLOWING FLIGHT TRAJECTORIES (Computed strictly from tickets in database) */}
           <g filter="url(#arc-glow)">
-            {/* Arc: New Zealand (890, 470) -> Singapore Hub (745, 335) */}
-            <path
-              d="M 890,470 Q 845,380 745,335"
-              fill="none"
-              stroke="url(#neon-route-grad)"
-              strokeWidth="2.4"
-            />
-            <path
-              d="M 890,470 Q 830,390 745,335"
-              fill="none"
-              stroke="#60A5FA"
-              strokeWidth="1.2"
-              strokeDasharray="4 4"
-            />
-
-            {/* Arc: Singapore (745, 335) -> Europe / London / Paris (460, 160) */}
-            <path
-              d="M 745,335 Q 640,210 460,160"
-              fill="none"
-              stroke="url(#neon-route-grad)"
-              strokeWidth="2.6"
-            />
-
-            {/* Arc: Singapore -> Seoul / Tokyo (815, 205) */}
-            <path
-              d="M 745,335 Q 780,260 815,205"
-              fill="none"
-              stroke="#FACC15"
-              strokeWidth="2"
-            />
-
-            {/* Arc: Singapore -> Johannesburg (530, 420) */}
-            <path
-              d="M 745,335 Q 630,390 530,420"
-              fill="none"
-              stroke="#FB923C"
-              strokeWidth="2"
-              strokeDasharray="3 3"
-            />
-
-            {/* Arc: Singapore -> Los Angeles (180, 210) */}
-            <path
-              d="M 745,335 Q 460,260 180,210"
-              fill="none"
-              stroke="#60A5FA"
-              strokeWidth="1.8"
-              strokeDasharray="4 4"
-            />
+            {flightRoutes.map((route) => (
+              <g key={`route-${route.id}`} className="group cursor-pointer" onClick={() => onSelectTicket?.(route.ticket)}>
+                {/* Outer Glow Arc */}
+                <path
+                  d={`M ${route.ox},${route.oy} Q ${route.mx},${route.my} ${route.dx},${route.dy}`}
+                  fill="none"
+                  stroke="url(#neon-route-grad)"
+                  strokeWidth="2.5"
+                  className="opacity-90 group-hover:opacity-100 transition-opacity"
+                />
+                {/* Animated Dash Trajectory */}
+                <path
+                  d={`M ${route.ox},${route.oy} Q ${route.mx},${route.my} ${route.dx},${route.dy}`}
+                  fill="none"
+                  stroke="#60A5FA"
+                  strokeWidth="1.2"
+                  strokeDasharray="5 5"
+                  className="opacity-80"
+                />
+              </g>
+            ))}
           </g>
 
-          {/* DESTINATION NODES & GLOWING PINS (No blocking popup!) */}
-          {/* New Zealand Origin Hub */}
-          <g className="cursor-pointer" onClick={() => onSelectTicket?.(tickets[0])}>
-            <circle cx="890" cy="470" r="12" fill="none" stroke="#FACC15" strokeWidth="1.5" opacity="0.8">
-              <animate attributeName="r" values="6;20;6" dur="3s" repeatCount="indefinite" />
-              <animate attributeName="opacity" values="0.9;0.1;0.9" dur="3s" repeatCount="indefinite" />
-            </circle>
-            <circle cx="890" cy="470" r="4.5" fill="#FFF" stroke="#FACC15" strokeWidth="2" />
-            <text x="890" y="495" fill="#FACC15" fontSize="10" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
-              AKL · NZ
-            </text>
-          </g>
-
-          {/* Singapore Changi Hub */}
-          <g className="cursor-pointer" onClick={() => onSelectTicket?.(tickets[0])}>
-            <circle cx="745" cy="335" r="9" fill="none" stroke="#60A5FA" strokeWidth="1.5" opacity="0.8">
-              <animate attributeName="r" values="5;15;5" dur="2.5s" repeatCount="indefinite" />
-            </circle>
-            <circle cx="745" cy="335" r="4" fill="#FACC15" stroke="#FFF" strokeWidth="1.5" />
-            <text x="745" y="325" fill="#FACC15" fontSize="10" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
-              SIN
-            </text>
-          </g>
-
-          {/* Destination Nodes across the globe */}
-          {destinations
-            .filter((dest) => {
-              // Only show completed destinations that have a ticket created in the database
-              if (!dest.completed) return false;
-              
-              const ticket = tickets.find((t) =>
-                t.id === dest.associatedTicketId ||
-                t.destinationCode.toUpperCase() === dest.code.toUpperCase()
-              );
-              return !!ticket;
-            })
-            .map((dest) => {
-            const x = ((dest.lng + 180) / 360) * 1000;
-            const y = ((90 - dest.lat) / 180) * 500;
-            const ticket = getTicketForCode(dest);
-            const isHovered = hoveredCity === dest.code;
+          {/* DYNAMIC NODES & GLOWING PINS (Computed strictly from database) */}
+          {mapNodes.map((node) => {
+            const isHovered = hoveredCity === node.code;
 
             return (
               <g
-                key={dest.id}
+                key={`node-${node.code}`}
                 className="cursor-pointer group"
-                onMouseEnter={() => setHoveredCity(dest.code)}
+                onMouseEnter={() => setHoveredCity(node.code)}
                 onMouseLeave={() => setHoveredCity(null)}
                 onClick={() => {
-                  if (ticket && onSelectTicket) {
-                    onSelectTicket(ticket);
+                  if (node.ticket && onSelectTicket) {
+                    onSelectTicket(node.ticket);
                   }
                 }}
               >
-                {/* Node Ring */}
+                {/* Pulsing Radar Ring for Origins and Active Hubs */}
                 <circle
-                  cx={x}
-                  cy={y}
-                  r={isHovered ? 7 : 4}
-                  fill={dest.completed ? '#FACC15' : '#38BDF8'}
+                  cx={node.x}
+                  cy={node.y}
+                  r={isHovered ? 14 : 9}
+                  fill="none"
+                  stroke={node.isOrigin ? '#60A5FA' : '#FACC15'}
+                  strokeWidth="1.5"
+                  opacity="0.8"
+                >
+                  <animate attributeName="r" values="5;15;5" dur="3s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="0.8;0.2;0.8" dur="3s" repeatCount="indefinite" />
+                </circle>
+
+                {/* Core Node Circle */}
+                <circle
+                  cx={node.x}
+                  cy={node.y}
+                  r={isHovered ? 6 : 4.5}
+                  fill={node.isOrigin ? '#60A5FA' : '#FACC15'}
                   stroke="#FFF"
-                  strokeWidth="1.2"
+                  strokeWidth="1.5"
                   className="transition-all duration-200"
                 />
 
-                {/* Subtle city label on hover */}
+                {/* Permanent Airport Code Badge */}
+                <text
+                  x={node.x}
+                  y={node.y + 14}
+                  fill={node.isOrigin ? '#60A5FA' : '#FACC15'}
+                  fontSize="9"
+                  fontWeight="bold"
+                  fontFamily="monospace"
+                  textAnchor="middle"
+                  className="select-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]"
+                >
+                  {node.code}
+                </text>
+
+                {/* City name popup on hover */}
                 {isHovered && (
                   <g>
                     <rect
-                      x={x - 45}
-                      y={y - 25}
-                      width="90"
-                      height="18"
+                      x={node.x - 55}
+                      y={node.y - 30}
+                      width="110"
+                      height="20"
                       rx="4"
                       fill="#0F172A"
                       stroke="#FACC15"
                       strokeWidth="1"
                     />
                     <text
-                      x={x}
-                      y={y - 13}
+                      x={node.x}
+                      y={node.y - 16}
                       fill="#FFF"
                       fontSize="9"
                       fontWeight="bold"
                       fontFamily="monospace"
                       textAnchor="middle"
                     >
-                      {`${ticket ? ticket.destinationCity : dest.city} (${dest.code})`}
+                      {`${node.city} (${node.code})`}
                     </text>
                   </g>
                 )}

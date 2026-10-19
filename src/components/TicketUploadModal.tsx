@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { BoardingTicket } from '../types';
 import { TicketCard } from './TicketCard';
-import { X, Upload, Camera, Sparkles, Check, RefreshCw } from 'lucide-react';
+import { X, Upload, Camera, Sparkles, Check, RefreshCw, MapPin, Globe } from 'lucide-react';
+import { CityAutocompleteInput } from './CityAutocompleteInput';
+import { AirportItem, getAirportByCode } from '../utils/airportLookup';
 
 interface TicketUploadModalProps {
   isOpen: boolean;
@@ -28,33 +30,59 @@ export const TicketUploadModal: React.FC<TicketUploadModalProps> = ({
     initialData?.photoFilter || 'halftone'
   );
   const [status, setStatus] = useState<string>(initialData?.status || 'WINNER');
+  
+  // Origin / Departing
   const [departingCode, setDepartingCode] = useState<string>(initialData?.departingCode || 'AKL');
   const [departingCity, setDepartingCity] = useState<string>(initialData?.departingCity || 'Auckland');
-  const [departingCountry, setDepartingCountry] = useState<string>(initialData?.departingCountry || '');
-  const [departingRegion, setDepartingRegion] = useState<string>(initialData?.departingRegion || '');
-  
+  const [departingCountry, setDepartingCountry] = useState<string>(initialData?.departingCountry || 'New Zealand');
+  const [departingRegion, setDepartingRegion] = useState<string>(initialData?.departingRegion || 'Oceania');
+  const [departingLat, setDepartingLat] = useState<number>(initialData?.departingLat ?? -37.008);
+  const [departingLng, setDepartingLng] = useState<number>(initialData?.departingLng ?? 174.792);
+
+  // Destination
   const [destinationCode, setDestinationCode] = useState<string>(initialData?.destinationCode || 'ICN');
   const [destinationCity, setDestinationCity] = useState<string>(initialData?.destinationCity || 'Seoul Incheon');
-  const [destinationCountry, setDestinationCountry] = useState<string>(initialData?.destinationCountry || '');
-  const [destinationRegion, setDestinationRegion] = useState<string>(initialData?.destinationRegion || '');
+  const [destinationCountry, setDestinationCountry] = useState<string>(initialData?.destinationCountry || 'South Korea');
+  const [destinationRegion, setDestinationRegion] = useState<string>(initialData?.destinationRegion || 'Asia');
+  const [destinationLat, setDestinationLat] = useState<number>(initialData?.destinationLat ?? initialData?.lat ?? 37.469);
+  const [destinationLng, setDestinationLng] = useState<number>(initialData?.destinationLng ?? initialData?.lng ?? 126.451);
 
-  const handleLookup = async (city: string, setCode: (c: string) => void, setCountry: (c: string) => void, setRegion: (r: string) => void) => {
-    try {
-      const res = await fetch(`/api/airport-lookup?city=${encodeURIComponent(city)}`);
-      const data = await res.json();
-      if (data && data.length > 0) {
-        const airport = data[0];
-        setCode(airport.iata_code || airport.icao_code || '');
-        setCountry(airport.country_name || '');
-        const country = airport.country_name.toLowerCase();
-        let region = 'Europe';
-        if (['france', 'spain', 'italy', 'germany', 'united kingdom'].includes(country)) region = 'Europe';
-        else if (['japan', 'china', 'south korea', 'thailand'].includes(country)) region = 'Asia';
-        else if (['usa', 'canada', 'brazil', 'argentina'].includes(country)) region = 'Americas';
-        setRegion(region);
-      }
-    } catch (e) {
-      console.error('Lookup failed', e);
+  // Auto-fill handlers for Departing
+  const handleDepartingSelect = (airport: AirportItem) => {
+    setDepartingCity(airport.city);
+    setDepartingCode(airport.iata);
+    setDepartingCountry(airport.country);
+    setDepartingRegion(airport.region);
+    setDepartingLat(airport.lat);
+    setDepartingLng(airport.lng);
+  };
+
+  // Auto-fill handlers for Destination
+  const handleDestinationSelect = (airport: AirportItem) => {
+    setDestinationCity(airport.city);
+    setDestinationCode(airport.iata);
+    setDestinationCountry(airport.country);
+    setDestinationRegion(airport.region);
+    setDestinationLat(airport.lat);
+    setDestinationLng(airport.lng);
+  };
+
+  // Direct IATA code typing handler
+  const handleDepartingCodeChange = (rawCode: string) => {
+    const code = rawCode.toUpperCase().slice(0, 4);
+    setDepartingCode(code);
+    if (code.length === 3) {
+      const match = getAirportByCode(code);
+      if (match) handleDepartingSelect(match);
+    }
+  };
+
+  const handleDestinationCodeChange = (rawCode: string) => {
+    const code = rawCode.toUpperCase().slice(0, 4);
+    setDestinationCode(code);
+    if (code.length === 3) {
+      const match = getAirportByCode(code);
+      if (match) handleDestinationSelect(match);
     }
   };
 
@@ -81,8 +109,22 @@ export const TicketUploadModal: React.FC<TicketUploadModalProps> = ({
       if (initialData.status) setStatus(initialData.status);
       if (initialData.departingCode) setDepartingCode(initialData.departingCode);
       if (initialData.departingCity) setDepartingCity(initialData.departingCity);
+      if (initialData.departingCountry) setDepartingCountry(initialData.departingCountry);
+      if (initialData.departingRegion) setDepartingRegion(initialData.departingRegion);
+      if (initialData.departingLat !== undefined) setDepartingLat(initialData.departingLat);
+      if (initialData.departingLng !== undefined) setDepartingLng(initialData.departingLng);
+
       if (initialData.destinationCode) setDestinationCode(initialData.destinationCode);
       if (initialData.destinationCity) setDestinationCity(initialData.destinationCity);
+      if (initialData.destinationCountry) setDestinationCountry(initialData.destinationCountry);
+      if (initialData.destinationRegion) setDestinationRegion(initialData.destinationRegion);
+      if (initialData.destinationLat !== undefined || initialData.lat !== undefined) {
+        setDestinationLat(initialData.destinationLat ?? initialData.lat ?? 37.469);
+      }
+      if (initialData.destinationLng !== undefined || initialData.lng !== undefined) {
+        setDestinationLng(initialData.destinationLng ?? initialData.lng ?? 126.451);
+      }
+
       if (initialData.departingDate) setDepartingDate(initialData.departingDate);
       if (initialData.returnDate !== undefined) setReturnDate(initialData.returnDate || '');
       if (initialData.packageContents) setPackageContents(initialData.packageContents);
@@ -124,8 +166,18 @@ export const TicketUploadModal: React.FC<TicketUploadModalProps> = ({
       statusColor: status === 'WINNER' ? '#EAB308' : '#F97316',
       departingCode: departingCode.toUpperCase().trim(),
       departingCity: departingCity.trim(),
+      departingCountry: departingCountry.trim() || undefined,
+      departingRegion: departingRegion.trim() || undefined,
+      departingLat,
+      departingLng,
       destinationCode: destinationCode.toUpperCase().trim(),
       destinationCity: destinationCity.trim(),
+      destinationCountry: destinationCountry.trim() || undefined,
+      destinationRegion: destinationRegion.trim() || undefined,
+      destinationLat,
+      destinationLng,
+      lat: destinationLat,
+      lng: destinationLng,
       departingDate,
       returnDate: returnDate || undefined,
       packageContents: packageContents.toUpperCase().trim(),
@@ -150,8 +202,14 @@ export const TicketUploadModal: React.FC<TicketUploadModalProps> = ({
     statusColor: status === 'WINNER' ? '#EAB308' : '#F97316',
     departingCode: departingCode || 'AKL',
     departingCity: departingCity || 'Auckland',
+    departingCountry,
+    departingRegion,
     destinationCode: destinationCode || 'ICN',
     destinationCity: destinationCity || 'Seoul Incheon',
+    destinationCountry,
+    destinationRegion,
+    lat: destinationLat,
+    lng: destinationLng,
     departingDate: departingDate || '2026-11-14',
     returnDate: returnDate || undefined,
     packageContents: packageContents || 'PASSENGER',
@@ -263,65 +321,115 @@ export const TicketUploadModal: React.FC<TicketUploadModalProps> = ({
             {/* 3. Route & Locations (Departing -> Destination) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Departing */}
-              <div className="p-3 bg-white/5 border border-white/10 rounded-lg space-y-2">
-                <span className="text-[10px] font-mono font-bold text-white/50 uppercase tracking-wider">
-                  Origen / Departing
-                </span>
-                <div>
-                  <label className="block text-[11px] text-white/70">Ciudad</label>
-                  <input
-                    type="text"
-                    value={departingCity}
-                    onChange={(e) => setDepartingCity(e.target.value)}
-                    onBlur={() => handleLookup(departingCity, setDepartingCode, setDepartingCountry, setDepartingRegion)}
-                    className="w-full px-2.5 py-1.5 bg-black border border-white/20 rounded text-white text-xs focus:border-[#FACC15] focus:outline-none"
-                    placeholder="Auckland"
-                    required
-                  />
+              <div className="p-3 bg-white/5 border border-white/10 rounded-lg space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono font-bold text-white/50 uppercase tracking-wider">
+                    Origen / Departing
+                  </span>
+                  {departingCountry && (
+                    <span className="text-[9px] font-mono text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                      ✓ Autocompletado
+                    </span>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-[11px] text-white/70">Código (IATA)</label>
-                  <input
-                    type="text"
-                    maxLength={4}
-                    value={departingCode}
-                    onChange={(e) => setDepartingCode(e.target.value.toUpperCase())}
-                    className="w-full px-2.5 py-1.5 bg-black border border-white/20 rounded font-mono font-bold text-white text-sm focus:border-[#FACC15] focus:outline-none uppercase"
-                    placeholder="AKL"
-                    required
-                  />
+
+                <CityAutocompleteInput
+                  label="Ciudad de Origen"
+                  value={departingCity}
+                  onChange={(c) => setDepartingCity(c)}
+                  onSelectAirport={handleDepartingSelect}
+                  placeholder="Ej. Auckland, Tokio, Bogotá..."
+                  required
+                  isDark={true}
+                />
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[11px] text-white/70 mb-1">Código (IATA) *</label>
+                    <input
+                      type="text"
+                      maxLength={4}
+                      value={departingCode}
+                      onChange={(e) => handleDepartingCodeChange(e.target.value)}
+                      className="w-full px-2.5 py-1.5 bg-black border border-white/20 rounded font-mono font-bold text-[#FACC15] text-sm focus:border-[#FACC15] focus:outline-none uppercase tracking-wider"
+                      placeholder="AKL"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] text-white/70 mb-1">Región</label>
+                    <input
+                      type="text"
+                      value={departingRegion || 'Oceania'}
+                      readOnly
+                      className="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-white/80 text-xs font-mono select-none"
+                    />
+                  </div>
                 </div>
+
+                {departingCountry && (
+                  <div className="text-[10px] font-mono text-white/60 flex items-center gap-1.5 pt-0.5">
+                    <MapPin className="w-3 h-3 text-[#FACC15]" />
+                    <span>País: <strong className="text-white">{departingCountry}</strong></span>
+                  </div>
+                )}
               </div>
 
               {/* Destination */}
-              <div className="p-3 bg-white/5 border border-white/10 rounded-lg space-y-2">
-                <span className="text-[10px] font-mono font-bold text-white/50 uppercase tracking-wider">
-                  Destino / Destination
-                </span>
-                <div>
-                  <label className="block text-[11px] text-white/70">Ciudad</label>
-                  <input
-                    type="text"
-                    value={destinationCity}
-                    onChange={(e) => setDestinationCity(e.target.value)}
-                    onBlur={() => handleLookup(destinationCity, setDestinationCode, setDestinationCountry, setDestinationRegion)}
-                    className="w-full px-2.5 py-1.5 bg-black border border-white/20 rounded text-white text-xs focus:border-[#FACC15] focus:outline-none"
-                    placeholder="Seoul Incheon"
-                    required
-                  />
+              <div className="p-3 bg-white/5 border border-white/10 rounded-lg space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono font-bold text-white/50 uppercase tracking-wider">
+                    Destino / Destination
+                  </span>
+                  {destinationCountry && (
+                    <span className="text-[9px] font-mono text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                      ✓ Autocompletado
+                    </span>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-[11px] text-white/70">Código (IATA)</label>
-                  <input
-                    type="text"
-                    maxLength={4}
-                    value={destinationCode}
-                    onChange={(e) => setDestinationCode(e.target.value.toUpperCase())}
-                    className="w-full px-2.5 py-1.5 bg-black border border-white/20 rounded font-mono font-bold text-white text-sm focus:border-[#FACC15] focus:outline-none uppercase"
-                    placeholder="ICN"
-                    required
-                  />
+
+                <CityAutocompleteInput
+                  label="Ciudad de Destino"
+                  value={destinationCity}
+                  onChange={(c) => setDestinationCity(c)}
+                  onSelectAirport={handleDestinationSelect}
+                  placeholder="Ej. Seúl, Florencia, París..."
+                  required
+                  isDark={true}
+                />
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[11px] text-white/70 mb-1">Código (IATA) *</label>
+                    <input
+                      type="text"
+                      maxLength={4}
+                      value={destinationCode}
+                      onChange={(e) => handleDestinationCodeChange(e.target.value)}
+                      className="w-full px-2.5 py-1.5 bg-black border border-white/20 rounded font-mono font-bold text-[#FACC15] text-sm focus:border-[#FACC15] focus:outline-none uppercase tracking-wider"
+                      placeholder="ICN"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] text-white/70 mb-1">Región</label>
+                    <input
+                      type="text"
+                      value={destinationRegion || 'Asia'}
+                      readOnly
+                      className="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-white/80 text-xs font-mono select-none"
+                    />
+                  </div>
                 </div>
+
+                {destinationCountry && (
+                  <div className="text-[10px] font-mono text-white/60 flex items-center gap-1.5 pt-0.5">
+                    <MapPin className="w-3 h-3 text-[#FACC15]" />
+                    <span>País: <strong className="text-white">{destinationCountry}</strong></span>
+                  </div>
+                )}
               </div>
             </div>
 
