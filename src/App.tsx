@@ -38,20 +38,12 @@ export default function App() {
   });
   const [isLockModalOpen, setIsLockModalOpen] = useState<boolean>(false);
 
-  // 1. Tickets state with Firestore persistence & auto-seeding
-  const [tickets, setTickets] = useState<BoardingTicket[]>(INITIAL_TICKETS);
+  // 1. Tickets state with Firestore persistence (starts empty, no auto-seeding)
+  const [tickets, setTickets] = useState<BoardingTicket[]>([]);
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'tickets'), (snapshot) => {
       if (snapshot.empty) {
-        // Automatically seed initial tickets to Firestore
-        INITIAL_TICKETS.forEach(async (t) => {
-          try {
-            await setDoc(doc(db, 'tickets', t.id), JSON.parse(JSON.stringify(t)));
-          } catch (e) {
-            console.error('Error seeding ticket to Firestore:', e);
-          }
-        });
-        setTickets(INITIAL_TICKETS);
+        setTickets([]);
       } else {
         const data = snapshot.docs.map((doc) => doc.data() as BoardingTicket);
         setTickets(data);
@@ -62,20 +54,12 @@ export default function App() {
     return unsub;
   }, []);
 
-  // 2. Destinations state with Firestore persistence & auto-seeding
-  const [destinations, setDestinations] = useState<DestinationItem[]>(INITIAL_DESTINATIONS);
+  // 2. Destinations state with Firestore persistence (starts empty, no auto-seeding)
+  const [destinations, setDestinations] = useState<DestinationItem[]>([]);
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'destinations'), (snapshot) => {
       if (snapshot.empty) {
-        // Automatically seed initial destinations to Firestore
-        INITIAL_DESTINATIONS.forEach(async (d) => {
-          try {
-            await setDoc(doc(db, 'destinations', d.id), JSON.parse(JSON.stringify(d)));
-          } catch (e) {
-            console.error('Error seeding destination to Firestore:', e);
-          }
-        });
-        setDestinations(INITIAL_DESTINATIONS);
+        setDestinations([]);
       } else {
         const data = snapshot.docs.map((doc) => doc.data() as DestinationItem);
         setDestinations(data);
@@ -86,20 +70,12 @@ export default function App() {
     return unsub;
   }, []);
 
-  // 3. Letters state with Firestore persistence & auto-seeding
-  const [letters, setLetters] = useState<TravelLetter[]>(INITIAL_LETTERS);
+  // 3. Letters state with Firestore persistence (starts empty, no auto-seeding)
+  const [letters, setLetters] = useState<TravelLetter[]>([]);
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'letters'), (snapshot) => {
       if (snapshot.empty) {
-        // Automatically seed initial letters to Firestore
-        INITIAL_LETTERS.forEach(async (l) => {
-          try {
-            await setDoc(doc(db, 'letters', l.id), JSON.parse(JSON.stringify(l)));
-          } catch (e) {
-            console.error('Error seeding letter to Firestore:', e);
-          }
-        });
-        setLetters(INITIAL_LETTERS);
+        setLetters([]);
       } else {
         const data = snapshot.docs.map((doc) => doc.data() as TravelLetter);
         setLetters(data);
@@ -344,6 +320,42 @@ export default function App() {
     }
   };
 
+  const handleDeleteAllDestinations = async () => {
+    try {
+      const promises = destinations.map((d) => deleteDoc(doc(db, 'destinations', d.id)));
+      await Promise.all(promises);
+      setDestinations([]);
+    } catch (e) {
+      console.error('Error deleting all destinations:', e);
+    }
+  };
+
+  const handleDeleteAllTickets = async () => {
+    try {
+      const promises = tickets.map((t) => deleteDoc(doc(db, 'tickets', t.id)));
+      await Promise.all(promises);
+      setTickets([]);
+    } catch (e) {
+      console.error('Error deleting all tickets:', e);
+    }
+  };
+
+  const handleDeleteAllLetters = async () => {
+    try {
+      const promises = letters.map((l) => deleteDoc(doc(db, 'letters', l.id)));
+      await Promise.all(promises);
+      setLetters([]);
+    } catch (e) {
+      console.error('Error deleting all letters:', e);
+    }
+  };
+
+  const handleClearDemoContent = async () => {
+    await handleDeleteAllDestinations();
+    await handleDeleteAllTickets();
+    await handleDeleteAllLetters();
+  };
+
   const openUploadModal = (prefill?: Partial<BoardingTicket>) => {
     setUploadModalState({
       isOpen: true,
@@ -477,6 +489,10 @@ export default function App() {
               onToggleDestination={handleToggleDestination}
               onAddDestination={handleAddDestination}
               onDeleteDestination={handleDeleteDestination}
+              onDeleteAllDestinations={handleDeleteAllDestinations}
+              onDeleteAllTickets={handleDeleteAllTickets}
+              onDeleteAllLetters={handleDeleteAllLetters}
+              onClearDemoContent={handleClearDemoContent}
               onAddLetter={handleSaveLetter}
               onUpdateLetter={handleSaveLetter}
               onDeleteLetter={handleDeleteLetter}
