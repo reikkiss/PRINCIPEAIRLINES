@@ -220,6 +220,8 @@ export const LetterEditorModal: React.FC<LetterEditorModalProps> = ({
                   { id: 'rose', name: 'Rosa Romántico' },
                   { id: 'linen', name: 'Lino Blanco' },
                   { id: 'parchment', name: 'Pergamino Real' },
+                  { id: 'airmail', name: 'Correo Aéreo' },
+                  { id: 'kraft', name: 'Papel Kraft' },
                 ].map((st) => (
                   <button
                     key={st.id}

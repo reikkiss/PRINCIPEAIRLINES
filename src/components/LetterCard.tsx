@@ -66,10 +66,21 @@ export const LetterCard: React.FC<LetterCardProps> = ({
     }
   };
 
+  const getCardBg = (style?: string) => {
+    switch (style) {
+      case 'linen': return 'bg-[#FDFCF7]';
+      case 'parchment': return 'bg-[#F4EBD9]';
+      case 'airmail': return 'bg-[#F0F4F8]';
+      case 'kraft': return 'bg-[#E8DCC4]';
+      case 'rose':
+      default: return 'bg-[#FBF8F1]';
+    }
+  };
+
   return (
     <div
       onClick={onOpen}
-      className={`group relative bg-[#FBF8F1] text-[#121212] shape-arch border-2 ${
+      className={`group relative ${getCardBg(letter.paperStyle)} text-[#121212] shape-arch border-2 ${
         isLocked
           ? 'border-amber-400/60 hover:border-amber-500 shadow-md'
           : 'border-[#EADFCB] hover:border-[#E05A36] shadow-lg'
