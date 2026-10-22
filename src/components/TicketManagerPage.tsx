@@ -184,7 +184,7 @@ export const TicketManagerPage: React.FC<TicketManagerPageProps> = ({
           <div className="flex items-center gap-3">
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 text-emerald-800 rounded-lg text-xs font-mono font-bold border border-emerald-300">
               <Lock className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Sesión Autorizada (02/12/2026)</span>
+              <span>Sesión Autorizada</span>
             </div>
 
             <button

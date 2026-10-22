@@ -7,7 +7,6 @@ interface LetterCountdownLockModalProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenLetter?: (letter: LoveLetter) => void;
-  onUpdateLetter?: (letter: LoveLetter) => void;
 }
 
 interface TimeRemaining {
@@ -23,29 +22,7 @@ export const LetterCountdownLockModal: React.FC<LetterCountdownLockModalProps> =
   isOpen,
   onClose,
   onOpenLetter,
-  onUpdateLetter,
 }) => {
-  const [isEditingTime, setIsEditingTime] = useState<boolean>(false);
-  const [newUnlockTime, setNewUnlockTime] = useState<string>(() => {
-    if (letter?.unlockDate) {
-      const d = new Date(letter.unlockDate);
-      if (!isNaN(d.getTime())) {
-        return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-      }
-    }
-    const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    return new Date(nextWeek.getTime() - nextWeek.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-  });
-
-  useEffect(() => {
-    if (letter?.unlockDate) {
-      const d = new Date(letter.unlockDate);
-      if (!isNaN(d.getTime())) {
-        setNewUnlockTime(new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16));
-      }
-    }
-    setIsEditingTime(false);
-  }, [letter, isOpen]);
   const [timeRemaining, setTimeRemaining] = useState<TimeRemaining>({
     days: 0,
     hours: 0,
@@ -178,62 +155,10 @@ export const LetterCountdownLockModal: React.FC<LetterCountdownLockModalProps> =
               ))}
             </div>
 
-            {/* Target Date Box & Edit button */}
-            <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-xs font-mono text-neutral-300 space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-amber-300 shrink-0" />
-                  <span>Se revelará el: <strong className="text-white capitalize">{formatUnlockDate(letter.unlockDate)}</strong></span>
-                </div>
-                {onUpdateLetter && !isEditingTime && (
-                  <button
-                    type="button"
-                    onClick={() => setIsEditingTime(true)}
-                    className="px-2.5 py-1 bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 rounded text-[10px] font-mono uppercase font-bold transition-colors cursor-pointer border border-amber-400/40"
-                  >
-                    Editar Fecha / Hora
-                  </button>
-                )}
-              </div>
-
-              {isEditingTime && (
-                <div className="pt-2 border-t border-white/10 space-y-2 animate-fadeIn text-left">
-                  <label className="block text-[11px] font-mono text-amber-300 uppercase">
-                    Nueva Fecha y Hora de Desbloqueo:
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="datetime-local"
-                      value={newUnlockTime}
-                      onChange={(e) => setNewUnlockTime(e.target.value)}
-                      className="flex-1 px-3 py-2 bg-neutral-900 border border-amber-400/60 rounded-lg text-white font-mono text-xs focus:outline-none focus:border-amber-400"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!letter || !onUpdateLetter) return;
-                        const updated: LoveLetter = {
-                          ...letter,
-                          isLockedUntilDate: true,
-                          unlockDate: new Date(newUnlockTime).toISOString(),
-                        };
-                        onUpdateLetter(updated);
-                        setIsEditingTime(false);
-                      }}
-                      className="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-neutral-950 font-bold rounded-lg text-xs font-mono uppercase cursor-pointer shrink-0"
-                    >
-                      Guardar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsEditingTime(false)}
-                      className="px-2.5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs font-mono uppercase cursor-pointer shrink-0"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                </div>
-              )}
+            {/* Target Date Box */}
+            <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-xs font-mono text-neutral-300 flex items-center justify-center gap-2">
+              <Calendar className="w-4 h-4 text-amber-300 shrink-0" />
+              <span>Se revelará el: <strong className="text-white capitalize">{formatUnlockDate(letter.unlockDate)}</strong></span>
             </div>
 
             {/* Romantic Message */}

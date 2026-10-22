@@ -13,10 +13,10 @@ export const DateLockModal: React.FC<DateLockModalProps> = ({
   onSuccess,
 }) => {
   // Date states (Day, Month, Year)
-  const [day, setDay] = useState<string>('02');
-  const [month, setMonth] = useState<string>('12');
-  const [year, setYear] = useState<string>('2026');
-  const [dateInput, setDateInput] = useState<string>('2026-12-02');
+  const [day, setDay] = useState<string>('01');
+  const [month, setMonth] = useState<string>('01');
+  const [year, setYear] = useState<string>('2025');
+  const [dateInput, setDateInput] = useState<string>('2025-01-01');
   const [useCalendar, setUseCalendar] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
