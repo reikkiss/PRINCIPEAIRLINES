@@ -19,21 +19,20 @@ export const Hero: React.FC<HeroProps> = ({
 
   return (
     <section className="relative w-full min-h-[92vh] flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 py-12 sm:py-20 overflow-hidden bg-[#FAF6EE]">
+      {/* Top Centered Logo / Image ("RAUL & REIKIS") */}
+      <div className="relative z-50 mb-4 sm:mb-6 w-full max-w-[220px] sm:max-w-md mx-auto flex justify-center">
+        <img
+          src={raulImg}
+          alt="Raul & Reikis"
+          className="w-full h-auto object-contain max-h-[100px] sm:max-h-[180px] md:max-h-[247px] drop-shadow-md select-none"
+        />
+      </div>
+
       {/* Interactive Draggable Romantic Stickers (Scalloped Menu, Roman Arch, Navy Checkers, Citrus Tag) */}
       <HeroStickers onScrollToSection={onScrollToSection} />
 
       {/* Main Content Container */}
       <div className="relative z-20 max-w-6xl w-full mx-auto text-center flex flex-col items-center">
-        {/* Top Centered Logo / Image ("RAUL & REIKIS") */}
-        <div className="mb-6 w-full max-w-xs sm:max-w-md mx-auto flex justify-center">
-          <img
-            src={raulImg}
-            alt="Raul & Reikis"
-            className="w-full object-contain drop-shadow-sm select-none"
-            style={{ height: '246.993px' }}
-          />
-        </div>
-
         {/* The Hero Image: Styled in a Roman Arch Frame with Terracotta & Scalloped Accents */}
         <div className="w-full relative group max-w-5xl">
           {/* Background Decorative Candy-Stripe & Scalloped Border Silhouette */}
