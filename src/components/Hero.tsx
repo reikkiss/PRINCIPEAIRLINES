@@ -1,6 +1,7 @@
 import React from 'react';
 import { HeroStickers } from './HeroStickers';
 import { Crown, Heart, Plane, Mail, MapPin, Sparkles } from 'lucide-react';
+import raulImg from '../assets/images/RAUL.png';
 
 interface HeroProps {
   onScrollToSection?: (sectionId: string) => void;
@@ -23,6 +24,15 @@ export const Hero: React.FC<HeroProps> = ({
 
       {/* Main Content Container */}
       <div className="relative z-20 max-w-6xl w-full mx-auto text-center flex flex-col items-center">
+        {/* Top Centered Logo / Image ("RAUL & REIKIS") */}
+        <div className="mb-6 w-full max-w-xs sm:max-w-md mx-auto flex justify-center">
+          <img
+            src={raulImg}
+            alt="Raul & Reikis"
+            className="w-full h-auto object-contain max-h-40 sm:max-h-56 drop-shadow-sm select-none"
+          />
+        </div>
+
         {/* The Hero Image: Styled in a Roman Arch Frame with Terracotta & Scalloped Accents */}
         <div className="w-full relative group max-w-5xl">
           {/* Background Decorative Candy-Stripe & Scalloped Border Silhouette */}
