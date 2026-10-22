@@ -547,6 +547,7 @@ export default function App() {
             setLockedLetterForCountdown(null);
             setSelectedLetterForReader(letter);
           }}
+          onUpdateLetter={handleSaveLetter}
         />
       </div>
     </div>
