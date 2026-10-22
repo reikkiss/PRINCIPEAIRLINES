@@ -29,7 +29,8 @@ export const Hero: React.FC<HeroProps> = ({
           <img
             src={raulImg}
             alt="Raul & Reikis"
-            className="w-full h-auto object-contain max-h-40 sm:max-h-56 drop-shadow-sm select-none"
+            className="w-full object-contain drop-shadow-sm select-none"
+            style={{ height: '246.993px' }}
           />
         </div>
 
