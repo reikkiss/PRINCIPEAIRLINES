@@ -5,6 +5,7 @@ import { X, Upload, Camera, Sparkles, Check, RefreshCw, MapPin, Globe } from 'lu
 import { CityAutocompleteInput } from './CityAutocompleteInput';
 import { AirportItem, getAirportByCode } from '../utils/airportLookup';
 import { compressImage } from '../utils/imageCompressor';
+import { getTodayLocalYYYYMMDD } from '../utils/dateFormat';
 
 interface TicketUploadModalProps {
   isOpen: boolean;
@@ -93,7 +94,7 @@ export const TicketUploadModal: React.FC<TicketUploadModalProps> = ({
   };
 
   const [departingDate, setDepartingDate] = useState<string>(
-    initialData?.departingDate || new Date().toISOString().split('T')[0]
+    initialData?.departingDate || getTodayLocalYYYYMMDD()
   );
   const [returnDate, setReturnDate] = useState<string>(initialData?.returnDate || '');
   const [packageContents, setPackageContents] = useState<string>(initialData?.packageContents || 'HEONJUNG');

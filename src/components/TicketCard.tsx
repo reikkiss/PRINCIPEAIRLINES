@@ -1,6 +1,7 @@
 import React from 'react';
 import { BoardingTicket } from '../types';
 import { Edit3, MapPin, Crown, Heart, Camera } from 'lucide-react';
+import { formatDisplayDate } from '../utils/dateFormat';
 
 interface TicketCardProps {
   ticket: BoardingTicket;
@@ -23,16 +24,8 @@ export const TicketCard: React.FC<TicketCardProps> = ({
 }) => {
   const isWinner = ticket.status.toUpperCase() === 'WINNER';
 
-  // Format dates for display
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return '';
-    try {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
-    } catch {
-      return dateStr;
-    }
-  };
+  // Format dates safely in local calendar time
+  const formatDate = (dateStr?: string) => formatDisplayDate(dateStr, 'short');
 
   // Ensure carrier name is PRINCIPE AIRLINES
   const displayCarrier =

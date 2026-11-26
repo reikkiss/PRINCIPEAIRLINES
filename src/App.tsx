@@ -17,6 +17,7 @@ import { compressImage } from './utils/imageCompressor';
 import { BoardingTicket, DestinationItem, TravelLetter, WorldRegion } from './types';
 import { Lock, Unlock } from 'lucide-react';
 import { getLetterIdFromCurrentUrl, updateUrlForLetter } from './utils/letterUrl';
+import { getTodayLocalYYYYMMDD } from './utils/dateFormat';
 import { db } from './firebase';
 import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import heroImgFile from './assets/images/IMG_4154.jpg';
@@ -294,7 +295,7 @@ export default function App() {
             region: (finalTicket.destinationRegion as WorldRegion) || existingDest.region,
             associatedTicketId: finalTicket.id,
             completed: true,
-            completedDate: existingDest.completedDate || new Date().toISOString().split('T')[0],
+            completedDate: existingDest.completedDate || getTodayLocalYYYYMMDD(),
             lat: finalTicket.destinationLat ?? finalTicket.lat ?? existingDest.lat,
             lng: finalTicket.destinationLng ?? finalTicket.lng ?? existingDest.lng,
           };
@@ -308,7 +309,7 @@ export default function App() {
             country: finalTicket.destinationCountry || 'International',
             region: (finalTicket.destinationRegion as WorldRegion) || 'Europe',
             completed: true,
-            completedDate: new Date().toISOString().split('T')[0],
+            completedDate: getTodayLocalYYYYMMDD(),
             associatedTicketId: finalTicket.id,
             experienceNotes: 'Boleto registrado y experiencia de viaje.',
             lat: finalTicket.destinationLat ?? finalTicket.lat ?? 0,
@@ -345,7 +346,7 @@ export default function App() {
       const updatedDest = {
         ...dest,
         completed: !dest.completed,
-        completedDate: !dest.completed ? new Date().toISOString().split('T')[0] : null,
+        completedDate: !dest.completed ? getTodayLocalYYYYMMDD() : null,
       };
       setDestinations((prev) => prev.map((d) => (d.id === destId ? updatedDest : d)));
       const sanitizedDest = JSON.parse(JSON.stringify(updatedDest));

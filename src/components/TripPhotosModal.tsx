@@ -12,6 +12,7 @@ import {
   Plane
 } from 'lucide-react';
 import { compressImage } from '../utils/imageCompressor';
+import { formatDisplayDate } from '../utils/dateFormat';
 
 interface TripPhotosModalProps {
   ticket: BoardingTicket | null;
@@ -153,15 +154,7 @@ export const TripPhotosModal: React.FC<TripPhotosModalProps> = ({
     setCurrentIndex((prev) => Math.max(0, prev - 1));
   };
 
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return '';
-    try {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
-    } catch {
-      return dateStr;
-    }
-  };
+  const formatDate = (dateStr?: string) => formatDisplayDate(dateStr, 'long');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl p-2 sm:p-4 md:p-6 animate-fadeIn select-none">

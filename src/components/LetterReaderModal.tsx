@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { LoveLetter } from '../types';
 import { AppleMusicPlayer } from './AppleMusicPlayer';
-import { X, Crown, Heart, Calendar, Printer, Sparkles, Music, Link2, Check, Share2 } from 'lucide-react';
-import { copyLetterUrlToClipboard, getLetterDirectUrl } from '../utils/letterUrl';
+import { X, Crown, Heart, Calendar, Printer, Sparkles, Music } from 'lucide-react';
+import { formatDisplayDate } from '../utils/dateFormat';
 
 interface LetterReaderModalProps {
   letter: LoveLetter | null;
@@ -15,19 +15,9 @@ export const LetterReaderModal: React.FC<LetterReaderModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const [copiedLink, setCopiedLink] = useState(false);
-
   if (!isOpen || !letter) return null;
 
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return '';
-    try {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
-    } catch {
-      return dateStr;
-    }
-  };
+  const formatDate = (dateStr?: string) => formatDisplayDate(dateStr, 'long');
 
   const getPaperTheme = (style?: string) => {
     switch (style) {
@@ -97,41 +87,9 @@ export const LetterReaderModal: React.FC<LetterReaderModalProps> = ({
         <div className={`px-6 py-3.5 ${paper.badgeBg} border-b ${paper.border} flex items-center justify-between`}>
           <div className="flex items-center gap-2">
             <Heart className={`w-4 h-4 fill-current ${paper.badgeText} animate-pulse`} />
-            <span className={`text-xs font-mono font-bold uppercase tracking-widest ${paper.text}`}>
-              CARTA DE AMOR PARA MI NOVIO · PRINCIPE AIRLINES ({letter.paperStyle?.toUpperCase() || 'ROSE'})
-            </span>
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={async () => {
-                const ok = await copyLetterUrlToClipboard(letter.id);
-                if (ok) {
-                  setCopiedLink(true);
-                  setTimeout(() => setCopiedLink(false), 2500);
-                }
-              }}
-              className={`px-3 py-1.5 rounded-full text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                copiedLink
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'bg-white/80 hover:bg-white text-neutral-800 border border-black/10 shadow-2xs hover:shadow-xs'
-              }`}
-              title="Copiar enlace directo de esta carta"
-            >
-              {copiedLink ? (
-                <>
-                  <Check className="w-3.5 h-3.5" />
-                  <span>¡Copiado!</span>
-                </>
-              ) : (
-                <>
-                  <Link2 className="w-3.5 h-3.5 text-rose-600" />
-                  <span className="hidden sm:inline">Copiar Enlace</span>
-                  <span className="sm:hidden">Enlace</span>
-                </>
-              )}
-            </button>
             <button
               type="button"
               onClick={() => window.print()}
@@ -219,7 +177,7 @@ export const LetterReaderModal: React.FC<LetterReaderModalProps> = ({
                 </div>
                 <div className="text-xs font-mono opacity-70 tracking-wider mt-1 flex items-center gap-1.5">
                   <Heart className="w-3.5 h-3.5 fill-current text-rose-500" />
-                  <span>Tu novia que te ama para siempre · Principe Airlines</span>
+                  <span>Tu novio que te ama.</span>
                 </div>
               </div>
             </div>
@@ -243,49 +201,6 @@ export const LetterReaderModal: React.FC<LetterReaderModalProps> = ({
                 </div>
               </div>
             )}
-          </div>
-
-          {/* Direct URL Share Card at bottom of letter */}
-          <div className={`mt-8 pt-5 border-t ${paper.border} flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono`}>
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-600 shrink-0">
-                <Link2 className="w-3.5 h-3.5" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-[10px] uppercase font-bold tracking-wider opacity-60">Enlace directo a esta carta:</div>
-                <div className="text-[11px] font-mono text-rose-700/90 truncate max-w-xs sm:max-w-md select-all font-semibold">
-                  {getLetterDirectUrl(letter.id)}
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={async () => {
-                const ok = await copyLetterUrlToClipboard(letter.id);
-                if (ok) {
-                  setCopiedLink(true);
-                  setTimeout(() => setCopiedLink(false), 2500);
-                }
-              }}
-              className={`px-3.5 py-1.5 rounded-lg font-mono font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0 ${
-                copiedLink
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-rose-600 hover:bg-rose-700 text-white shadow-xs'
-              }`}
-            >
-              {copiedLink ? (
-                <>
-                  <Check className="w-3.5 h-3.5" />
-                  <span>¡Enlace Copiado!</span>
-                </>
-              ) : (
-                <>
-                  <Share2 className="w-3.5 h-3.5" />
-                  <span>Compartir / Copiar Enlace</span>
-                </>
-              )}
-            </button>
           </div>
         </div>
       </div>

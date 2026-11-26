@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { copyLetterUrlToClipboard, getLetterDirectUrl } from '../utils/letterUrl';
 import { BilingualDictionaryPanel } from './BilingualDictionaryPanel';
+import { getTodayLocalYYYYMMDD } from '../utils/dateFormat';
 
 interface TicketManagerPageProps {
   tickets: BoardingTicket[];
@@ -128,7 +129,7 @@ export const TicketManagerPage: React.FC<TicketManagerPageProps> = ({
           departingCity: 'Auckland',
           destinationCode: index % 3 === 0 ? 'ICN' : index % 3 === 1 ? 'LHR' : 'CDG',
           destinationCity: index % 3 === 0 ? 'Seoul Incheon' : index % 3 === 1 ? 'London' : 'Paris',
-          departingDate: new Date(Date.now() + index * 86400000 * 7).toISOString().split('T')[0],
+          departingDate: getTodayLocalYYYYMMDD(index * 7),
           packageContents: cleanName.slice(0, 16),
           forRecipient: 'VIP TRAVELER',
           photoUrl,
@@ -615,7 +616,7 @@ export const TicketManagerPage: React.FC<TicketManagerPageProps> = ({
                 onOpenUploadModal({
                   destinationCity: dest.city,
                   destinationCode: dest.code,
-                  departingDate: dest.targetDate || new Date().toISOString().split('T')[0],
+                  departingDate: dest.targetDate || getTodayLocalYYYYMMDD(),
                 })
               }
               onAddDestination={onAddDestination}

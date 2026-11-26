@@ -2,10 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { LoveLetter, AppleMusicTrack } from '../types';
 import { AppleMusicSelector } from './AppleMusicSelector';
 import { compressImage } from '../utils/imageCompressor';
-import { X, Upload, Heart, Lock, Calendar, Clock, Disc3, Link2 } from 'lucide-react';
-import { copyLetterUrlToClipboard, getLetterDirectUrl } from '../utils/letterUrl';
+import { X, Upload, Heart, Lock, Calendar, Clock, Disc3 } from 'lucide-react';
 import { SpellcheckAssistantBar } from './SpellcheckAssistantBar';
 import { DictionaryMode } from '../utils/bilingualDictionary';
+import { getTodayLocalYYYYMMDD } from '../utils/dateFormat';
 
 interface LetterEditorModalProps {
   isOpen: boolean;
@@ -25,7 +25,7 @@ export const LetterEditorModal: React.FC<LetterEditorModalProps> = ({
   const [title, setTitle] = useState(initialData?.title || '');
   const [recipient, setRecipient] = useState(initialData?.recipient || 'MI AMOR, MI PRÍNCIPE');
   const [sender, setSender] = useState(initialData?.sender || 'TU NOVIA');
-  const [date, setDate] = useState(initialData?.date || new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(initialData?.date || getTodayLocalYYYYMMDD());
   const [specialSong, setSpecialSong] = useState(initialData?.specialSong || '');
   const [appleMusicTrack, setAppleMusicTrack] = useState<AppleMusicTrack | undefined>(initialData?.appleMusicTrack);
   const [content, setContent] = useState(initialData?.content || '');
@@ -35,7 +35,6 @@ export const LetterEditorModal: React.FC<LetterEditorModalProps> = ({
   const [paperStyle, setPaperStyle] = useState<'linen' | 'parchment' | 'airmail' | 'kraft' | 'rose'>(
     initialData?.paperStyle || 'rose'
   );
-  const [copiedUrl, setCopiedUrl] = useState(false);
   const [dictMode, setDictMode] = useState<DictionaryMode>('both');
 
   // Countdown Lock State
@@ -79,7 +78,7 @@ export const LetterEditorModal: React.FC<LetterEditorModalProps> = ({
       setTitle('');
       setRecipient('MI AMOR, MI PRÍNCIPE');
       setSender('TU NOVIA');
-      setDate(new Date().toISOString().split('T')[0]);
+      setDate(getTodayLocalYYYYMMDD());
       setSpecialSong('');
       setAppleMusicTrack(undefined);
       setContent('');
@@ -156,32 +155,6 @@ export const LetterEditorModal: React.FC<LetterEditorModalProps> = ({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-5 flex-1 font-sans">
-          {/* Direct URL permalink info */}
-          {initialData?.id && (
-            <div className="p-3 bg-black/40 border border-rose-500/20 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono">
-              <div className="flex items-center gap-2 min-w-0">
-                <Link2 className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                <span className="text-white/60 text-[10px] uppercase font-bold shrink-0">Enlace directo:</span>
-                <span className="text-rose-300 text-[11px] truncate select-all">{getLetterDirectUrl(initialData.id)}</span>
-              </div>
-              <button
-                type="button"
-                onClick={async () => {
-                  const ok = await copyLetterUrlToClipboard(initialData.id!);
-                  if (ok) {
-                    setCopiedUrl(true);
-                    setTimeout(() => setCopiedUrl(false), 2000);
-                  }
-                }}
-                className={`px-3 py-1 rounded-lg text-xs font-bold uppercase transition-colors shrink-0 cursor-pointer ${
-                  copiedUrl ? 'bg-emerald-600 text-white' : 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/40'
-                }`}
-              >
-                {copiedUrl ? '¡Copiado!' : 'Copiar Enlace'}
-              </button>
-            </div>
-          )}
-
           {/* Title */}
           <div className="space-y-2">
             <label className="block text-xs font-mono uppercase text-rose-400 font-bold mb-1">

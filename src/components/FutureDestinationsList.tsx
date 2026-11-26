@@ -3,6 +3,7 @@ import { DestinationItem, WorldRegion, BoardingTicket } from '../types';
 import { CheckCircle2, Circle, Plus, Camera, MapPin, Calendar, Sparkles, Filter, Trash2 } from 'lucide-react';
 import { CityAutocompleteInput } from './CityAutocompleteInput';
 import { AirportItem, getAirportByCode } from '../utils/airportLookup';
+import { getTodayLocalYYYYMMDD } from '../utils/dateFormat';
 
 interface FutureDestinationsListProps {
   destinations: DestinationItem[];
@@ -66,7 +67,7 @@ export const FutureDestinationsList: React.FC<FutureDestinationsListProps> = ({
         code: newCode.toUpperCase().trim(),
         region: newRegion,
         completed: false,
-        targetDate: newDate || new Date().toISOString().split('T')[0],
+        targetDate: newDate || getTodayLocalYYYYMMDD(),
         experienceNotes: newNotes || 'Nuevas experiencias y registro fotográfico.',
         lat: newLat,
         lng: newLng,
