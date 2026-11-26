@@ -17,11 +17,15 @@ import {
   ArrowLeft,
   Lock,
   CheckCircle2,
-  Mail,
-  MapPin,
   Heart,
-  Sparkles
+  Sparkles,
+  Link2,
+  Check,
+  Camera,
+  BookOpen
 } from 'lucide-react';
+import { copyLetterUrlToClipboard, getLetterDirectUrl } from '../utils/letterUrl';
+import { BilingualDictionaryPanel } from './BilingualDictionaryPanel';
 
 interface TicketManagerPageProps {
   tickets: BoardingTicket[];
@@ -34,6 +38,7 @@ interface TicketManagerPageProps {
   onDeleteTicket: (ticketId: string) => void;
   onSelectTicketFor3D: (ticket: BoardingTicket) => void;
   onOpenUploadModal: (prefill?: Partial<BoardingTicket>) => void;
+  onOpenTripPhotos?: (ticket: BoardingTicket) => void;
   onToggleDestination: (destId: string) => void;
   onAddDestination: (destination: Omit<DestinationItem, 'id'>) => void;
   onDeleteDestination: (destId: string) => void;
@@ -60,6 +65,7 @@ export const TicketManagerPage: React.FC<TicketManagerPageProps> = ({
   onDeleteTicket,
   onSelectTicketFor3D,
   onOpenUploadModal,
+  onOpenTripPhotos,
   onToggleDestination,
   onAddDestination,
   onDeleteDestination,
@@ -74,10 +80,11 @@ export const TicketManagerPage: React.FC<TicketManagerPageProps> = ({
   onDeleteAllTickets,
   onDeleteAllLetters,
 }) => {
-  const [activeTab, setActiveTab] = useState<'tickets' | 'destinations' | 'letters' | 'portada'>('tickets');
+  const [activeTab, setActiveTab] = useState<'tickets' | 'destinations' | 'letters' | 'portada' | 'dictionary'>('tickets');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [batchUploadNotice, setBatchUploadNotice] = useState<string | null>(null);
+  const [copiedLetterId, setCopiedLetterId] = useState<string | null>(null);
   const batchInputRef = useRef<HTMLInputElement>(null);
 
   // Filter tickets
@@ -248,6 +255,19 @@ export const TicketManagerPage: React.FC<TicketManagerPageProps> = ({
             <Sparkles className="w-3.5 h-3.5" />
             <span>Foto de Portada</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('dictionary')}
+            className={`px-4 py-2 rounded-lg font-mono text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'dictionary'
+                ? 'bg-emerald-700 text-white shadow-md'
+                : 'bg-neutral-200 hover:bg-neutral-300 text-neutral-800'
+            }`}
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            <span>Diccionario EN / ES</span>
+          </button>
         </div>
 
         {/* TAB 1: TICKETS */}
@@ -372,12 +392,42 @@ export const TicketManagerPage: React.FC<TicketManagerPageProps> = ({
                         </span>
                       </div>
 
-                      <div className="transform scale-[0.82] origin-top my-1">
-                        <TicketCard ticket={ticket} showActions={false} isFocused />
+                      <div
+                        onClick={() => onOpenTripPhotos?.(ticket)}
+                        className="transform scale-[0.82] origin-top my-1 cursor-pointer"
+                        title="Toca para ver o añadir fotos de este viaje"
+                      >
+                        <TicketCard
+                          ticket={ticket}
+                          showActions={false}
+                          isFocused
+                          onOpenPhotos={onOpenTripPhotos}
+                        />
                       </div>
                     </div>
 
-                    <div className="mt-4 pt-3 border-t border-neutral-200 grid grid-cols-4 gap-1 text-center">
+                    <div className="mt-4 pt-3 border-t border-neutral-200 grid grid-cols-5 gap-1 text-center">
+                      <button
+                        type="button"
+                        onClick={() => onOpenTripPhotos?.(ticket)}
+                        title="Ver y Añadir Fotos de este Viaje"
+                        className="p-2 hover:bg-amber-50 rounded text-neutral-700 hover:text-[#E05A36] flex flex-col items-center gap-1 transition-colors cursor-pointer"
+                      >
+                        <Camera className="w-4 h-4 text-[#E05A36]" />
+                        <span className="text-[9px] font-mono font-bold">
+                          Fotos ({(() => {
+                            const photos: string[] = [];
+                            if (ticket.photoUrl) photos.push(ticket.photoUrl);
+                            if (Array.isArray(ticket.galleryPhotos)) {
+                              ticket.galleryPhotos.forEach((p) => {
+                                if (p && !photos.includes(p)) photos.push(p);
+                              });
+                            }
+                            return photos.length;
+                          })()})
+                        </span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => {
@@ -467,8 +517,59 @@ export const TicketManagerPage: React.FC<TicketManagerPageProps> = ({
                   <div key={letter.id} className="relative flex flex-col justify-between bg-white rounded-xl border border-neutral-300 p-2 shadow-sm hover:shadow-md">
                     <LetterCard letter={letter} onOpen={() => onOpenLetterReader(letter)} />
                     
+                    {/* Direct URL permalink bar */}
+                    <div className="px-3 py-1.5 bg-neutral-50 rounded-lg border border-neutral-200 mt-2 flex items-center justify-between gap-2 text-[10px] font-mono text-neutral-500">
+                      <span className="truncate select-all text-neutral-700 font-semibold">{getLetterDirectUrl(letter.id)}</span>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const ok = await copyLetterUrlToClipboard(letter.id);
+                          if (ok) {
+                            setCopiedLetterId(letter.id);
+                            setTimeout(() => setCopiedLetterId(null), 2000);
+                          }
+                        }}
+                        className={`px-2 py-0.5 rounded font-bold uppercase transition-colors shrink-0 cursor-pointer ${
+                          copiedLetterId === letter.id
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-white hover:bg-neutral-200 text-neutral-800 border border-neutral-300'
+                        }`}
+                      >
+                        {copiedLetterId === letter.id ? 'Copiado' : 'Copiar URL'}
+                      </button>
+                    </div>
+
                     {/* Admin Actions Bar on Card */}
-                    <div className="mt-2 pt-2 border-t border-neutral-200 flex items-center justify-end gap-2 px-2 text-xs font-mono">
+                    <div className="mt-2 pt-2 border-t border-neutral-200 flex items-center justify-end gap-1.5 px-2 text-xs font-mono">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const ok = await copyLetterUrlToClipboard(letter.id);
+                          if (ok) {
+                            setCopiedLetterId(letter.id);
+                            setTimeout(() => setCopiedLetterId(null), 2000);
+                          }
+                        }}
+                        className={`p-1.5 rounded flex items-center gap-1 cursor-pointer transition-colors ${
+                          copiedLetterId === letter.id
+                            ? 'bg-emerald-100 text-emerald-800 font-bold'
+                            : 'hover:bg-neutral-100 text-neutral-700 hover:text-black'
+                        }`}
+                        title="Copiar enlace directo de esta carta"
+                      >
+                        {copiedLetterId === letter.id ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>¡Copiado!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Link2 className="w-3.5 h-3.5 text-[#E05A36]" />
+                            <span>Enlace</span>
+                          </>
+                        )}
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => onOpenLetterEditor(letter)}
@@ -625,6 +726,14 @@ export const TicketManagerPage: React.FC<TicketManagerPageProps> = ({
               </div>
             </div>
           </div>
+        )}
+
+        {/* TAB 5: BILINGUAL DICTIONARY EN / ES */}
+        {activeTab === 'dictionary' && (
+          <BilingualDictionaryPanel
+            letters={letters}
+            onEditLetter={(letter) => onOpenLetterEditor(letter)}
+          />
         )}
       </div>
     </div>

@@ -2,7 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { LoveLetter, AppleMusicTrack } from '../types';
 import { AppleMusicSelector } from './AppleMusicSelector';
 import { compressImage } from '../utils/imageCompressor';
-import { X, Upload, Heart, Lock, Calendar, Clock, Disc3 } from 'lucide-react';
+import { X, Upload, Heart, Lock, Calendar, Clock, Disc3, Link2 } from 'lucide-react';
+import { copyLetterUrlToClipboard, getLetterDirectUrl } from '../utils/letterUrl';
+import { SpellcheckAssistantBar } from './SpellcheckAssistantBar';
+import { DictionaryMode } from '../utils/bilingualDictionary';
 
 interface LetterEditorModalProps {
   isOpen: boolean;
@@ -32,6 +35,8 @@ export const LetterEditorModal: React.FC<LetterEditorModalProps> = ({
   const [paperStyle, setPaperStyle] = useState<'linen' | 'parchment' | 'airmail' | 'kraft' | 'rose'>(
     initialData?.paperStyle || 'rose'
   );
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [dictMode, setDictMode] = useState<DictionaryMode>('both');
 
   // Countdown Lock State
   const [isLockedUntilDate, setIsLockedUntilDate] = useState<boolean>(initialData?.isLockedUntilDate || false);
@@ -151,19 +156,57 @@ export const LetterEditorModal: React.FC<LetterEditorModalProps> = ({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-5 flex-1 font-sans">
+          {/* Direct URL permalink info */}
+          {initialData?.id && (
+            <div className="p-3 bg-black/40 border border-rose-500/20 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono">
+              <div className="flex items-center gap-2 min-w-0">
+                <Link2 className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                <span className="text-white/60 text-[10px] uppercase font-bold shrink-0">Enlace directo:</span>
+                <span className="text-rose-300 text-[11px] truncate select-all">{getLetterDirectUrl(initialData.id)}</span>
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  const ok = await copyLetterUrlToClipboard(initialData.id!);
+                  if (ok) {
+                    setCopiedUrl(true);
+                    setTimeout(() => setCopiedUrl(false), 2000);
+                  }
+                }}
+                className={`px-3 py-1 rounded-lg text-xs font-bold uppercase transition-colors shrink-0 cursor-pointer ${
+                  copiedUrl ? 'bg-emerald-600 text-white' : 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/40'
+                }`}
+              >
+                {copiedUrl ? '¡Copiado!' : 'Copiar Enlace'}
+              </button>
+            </div>
+          )}
+
           {/* Title */}
-          <div>
+          <div className="space-y-2">
             <label className="block text-xs font-mono uppercase text-rose-400 font-bold mb-1">
               Título / Asunto de la Carta de Amor *
             </label>
             <input
               type="text"
               required
+              spellCheck={true}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Ej: Para el amor de mi vida, mi Príncipe"
               className="w-full px-3.5 py-2.5 bg-neutral-900 border border-white/20 rounded-lg text-white font-display text-base focus:border-rose-500 focus:outline-none"
             />
+            {title.trim().length > 0 && (
+              <SpellcheckAssistantBar
+                text={title}
+                onChangeText={setTitle}
+                mode={dictMode}
+                onChangeMode={setDictMode}
+                showModeSelector={false}
+                label="Revisión de Título (EN/ES)"
+                theme="dark"
+              />
+            )}
           </div>
 
           {/* Sender & Recipient */}
@@ -321,18 +364,28 @@ export const LetterEditorModal: React.FC<LetterEditorModalProps> = ({
           </div>
 
           {/* Body Content */}
-          <div>
+          <div className="space-y-2.5">
             <label className="block text-xs font-mono uppercase text-rose-400 font-bold mb-1 flex items-center justify-between">
               <span>Mensaje de Amor *</span>
-              <span className="text-[11px] text-white/40 font-normal">Escribe todo lo que sientes</span>
+              <span className="text-[11px] text-white/40 font-normal">Diccionario Inglés & Español activo</span>
             </label>
             <textarea
               required
               rows={7}
+              spellCheck={true}
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Escribe aquí tu carta de amor... Cuéntale cuánto lo amas, un recuerdo especial de ustedes dos, lo que más te gusta de él, o una promesa para el futuro..."
               className="w-full px-3.5 py-3 bg-neutral-900 border border-white/20 rounded-lg text-white text-sm sm:text-base leading-relaxed focus:border-rose-500 focus:outline-none font-serif"
+            />
+            <SpellcheckAssistantBar
+              text={content}
+              onChangeText={setContent}
+              mode={dictMode}
+              onChangeMode={setDictMode}
+              showModeSelector={true}
+              label="Diccionario & Corrector EN / ES"
+              theme="dark"
             />
           </div>
 

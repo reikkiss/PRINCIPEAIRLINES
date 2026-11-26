@@ -22,11 +22,16 @@ export const TicketUploadModal: React.FC<TicketUploadModalProps> = ({
   mode = 'create',
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   // Form States
   const [photoUrl, setPhotoUrl] = useState<string>(
     initialData?.photoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80'
   );
+  const [galleryPhotos, setGalleryPhotos] = useState<string[]>(
+    initialData?.galleryPhotos || []
+  );
+  const [isUploadingGallery, setIsUploadingGallery] = useState(false);
   const [photoFilter, setPhotoFilter] = useState<'halftone' | 'grayscale' | 'contrast' | 'none'>(
     initialData?.photoFilter || 'halftone'
   );
@@ -134,6 +139,13 @@ export const TicketUploadModal: React.FC<TicketUploadModalProps> = ({
       if (initialData.flightNumber) setFlightNumber(initialData.flightNumber);
       if (initialData.barcode1) setBarcode1(initialData.barcode1);
       if (initialData.barcode2) setBarcode2(initialData.barcode2);
+      if (initialData.galleryPhotos && Array.isArray(initialData.galleryPhotos)) {
+        setGalleryPhotos(initialData.galleryPhotos);
+      } else {
+        setGalleryPhotos([]);
+      }
+    } else if (isOpen) {
+      setGalleryPhotos([]);
     }
   }, [initialData, isOpen]);
 
@@ -166,6 +178,17 @@ export const TicketUploadModal: React.FC<TicketUploadModalProps> = ({
       finalPhoto = await compressImage(finalPhoto, 800, 800, 0.65);
     }
 
+    // Ensure galleryPhotos are compressed
+    const finalGallery: string[] = [];
+    for (const gPhoto of galleryPhotos) {
+      if (gPhoto.startsWith('data:image')) {
+        const comp = await compressImage(gPhoto, 800, 800, 0.65);
+        finalGallery.push(comp);
+      } else {
+        finalGallery.push(gPhoto);
+      }
+    }
+
     const ticketToSave: BoardingTicket = {
       id: initialData?.id || `ticket-${Date.now()}`,
       status,
@@ -189,6 +212,7 @@ export const TicketUploadModal: React.FC<TicketUploadModalProps> = ({
       packageContents: packageContents.toUpperCase().trim(),
       forRecipient: forRecipient.toUpperCase().trim(),
       photoUrl: finalPhoto,
+      galleryPhotos: finalGallery,
       photoFilter,
       barcode1,
       barcode2,
@@ -218,9 +242,10 @@ export const TicketUploadModal: React.FC<TicketUploadModalProps> = ({
     lng: destinationLng,
     departingDate: departingDate || '2026-11-14',
     returnDate: returnDate || undefined,
+    photoUrl,
+    galleryPhotos,
     packageContents: packageContents || 'PASSENGER',
     forRecipient: forRecipient || 'RECIPIENT',
-    photoUrl,
     photoFilter,
     barcode1,
     barcode2,
@@ -296,6 +321,91 @@ export const TicketUploadModal: React.FC<TicketUploadModalProps> = ({
                     {filter === 'halftone' ? 'Halftone Dither' : filter}
                   </button>
                 ))}
+              </div>
+
+              {/* Trip Photo Album (Multiple Photos) */}
+              <div className="mt-4 p-4 bg-white/5 border border-white/15 rounded-xl space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <label className="block text-xs font-mono uppercase tracking-wider text-[#FACC15] font-bold flex items-center gap-1.5">
+                      <Camera className="w-4 h-4 text-amber-300" />
+                      <span>Álbum de Fotos de este Viaje ({galleryPhotos.length + (photoUrl ? 1 : 0)} fotos)</span>
+                    </label>
+                    <p className="text-[11px] text-white/60 font-sans mt-0.5">
+                      Añade más fotos de recuerdos de este destino. Se verán todas al tocar el pase.
+                    </p>
+                  </div>
+
+                  <input
+                    ref={galleryInputRef}
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const files = e.target.files;
+                      if (!files || files.length === 0) return;
+                      setIsUploadingGallery(true);
+                      const added: string[] = [];
+                      for (let i = 0; i < files.length; i++) {
+                        const comp = await compressImage(files[i], 800, 800, 0.65);
+                        if (comp) added.push(comp);
+                      }
+                      setGalleryPhotos((prev) => [...prev, ...added]);
+                      setIsUploadingGallery(false);
+                      if (galleryInputRef.current) galleryInputRef.current.value = '';
+                    }}
+                    className="hidden"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => galleryInputRef.current?.click()}
+                    disabled={isUploadingGallery}
+                    className="px-3 py-1.5 bg-[#E05A36] hover:bg-[#C84B2B] text-white text-xs font-mono font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5 shrink-0 shadow-sm"
+                  >
+                    <Upload className="w-3.5 h-3.5 text-amber-300" />
+                    <span>{isUploadingGallery ? 'Procesando...' : '+ Subir Fotos'}</span>
+                  </button>
+                </div>
+
+                {/* Thumbnails preview grid */}
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 pt-2">
+                  {/* Main photo */}
+                  {photoUrl && (
+                    <div className="relative aspect-square rounded-lg overflow-hidden border-2 border-amber-400 bg-neutral-900 shadow-sm">
+                      <img src={photoUrl} alt="Foto Principal" className="w-full h-full object-cover" />
+                      <span className="absolute bottom-0 inset-x-0 bg-black/80 text-[7px] font-mono font-bold text-amber-300 text-center uppercase py-0.5">
+                        Principal
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Gallery Photos */}
+                  {galleryPhotos.map((photo, index) => (
+                    <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-white/20 bg-neutral-900 group shadow-sm">
+                      <img src={photo} alt={`Foto ${index + 1}`} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setGalleryPhotos((prev) => prev.filter((_, i) => i !== index))}
+                        className="absolute top-1 right-1 p-1 bg-red-600/90 hover:bg-red-600 text-white rounded-full transition-opacity cursor-pointer shadow-sm"
+                        title="Eliminar foto del álbum"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* Add button inside grid */}
+                  <button
+                    type="button"
+                    onClick={() => galleryInputRef.current?.click()}
+                    className="aspect-square rounded-lg border-2 border-dashed border-white/25 hover:border-amber-400 bg-white/5 hover:bg-white/10 flex flex-col items-center justify-center text-white/50 hover:text-amber-300 transition-colors cursor-pointer text-[10px] font-mono gap-1"
+                    title="Añadir fotos a este viaje"
+                  >
+                    <Camera className="w-4 h-4 text-amber-300" />
+                    <span>+ Foto</span>
+                  </button>
+                </div>
               </div>
             </div>
 

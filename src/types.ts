@@ -50,6 +50,7 @@ export interface BoardingTicket {
   packageContents: string; // Passenger or package name
   forRecipient: string;    // Recipient name
   photoUrl: string;        // URL or base64 data
+  galleryPhotos?: string[];// Additional photos for this trip/flight memory
   photoFilter?: 'halftone' | 'grayscale' | 'contrast' | 'none';
   barcode1: string;
   barcode2: string;

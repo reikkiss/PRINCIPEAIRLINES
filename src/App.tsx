@@ -9,15 +9,14 @@ import { TicketUploadModal } from './components/TicketUploadModal';
 import { LetterEditorModal } from './components/LetterEditorModal';
 import { LetterReaderModal } from './components/LetterReaderModal';
 import { LetterCountdownLockModal } from './components/LetterCountdownLockModal';
+import { TripPhotosModal } from './components/TripPhotosModal';
 import { isLetterLocked } from './components/LetterCard';
 import { DateLockModal } from './components/DateLockModal';
-import { INITIAL_LETTERS } from './data/lettersData';
-import { INITIAL_TICKETS } from './data/ticketsData';
-import { INITIAL_DESTINATIONS } from './data/destinationsData';
 import { compressImage } from './utils/imageCompressor';
 
 import { BoardingTicket, DestinationItem, TravelLetter, WorldRegion } from './types';
 import { Lock, Unlock } from 'lucide-react';
+import { getLetterIdFromCurrentUrl, updateUrlForLetter } from './utils/letterUrl';
 import { db } from './firebase';
 import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import heroImgFile from './assets/images/IMG_4154.jpg';
@@ -143,9 +142,11 @@ export default function App() {
     mode: 'create',
   });
 
-  // Letter Reader, Countdown Lock & Editor Modal States
+  // Letter Reader, Countdown Lock, Editor & Trip Photos Modal States
   const [selectedLetterForReader, setSelectedLetterForReader] = useState<TravelLetter | null>(null);
   const [lockedLetterForCountdown, setLockedLetterForCountdown] = useState<TravelLetter | null>(null);
+  const [selectedTicketIdForPhotos, setSelectedTicketIdForPhotos] = useState<string | null>(null);
+  const selectedTicketForPhotos = tickets.find((t) => t.id === selectedTicketIdForPhotos) || null;
   const [letterEditorState, setLetterEditorState] = useState<{
     isOpen: boolean;
     initialData?: Partial<TravelLetter> | null;
@@ -154,23 +155,112 @@ export default function App() {
     initialData: null,
   });
 
-  // Handle opening letter: check if locked with countdown or unlocked
-  const handleOpenLetter = (letter: TravelLetter) => {
+  // Handle opening letter: check if locked with countdown or unlocked & update URL
+  const handleOpenLetter = (letter: TravelLetter, syncUrl: boolean = true) => {
+    if (syncUrl) {
+      updateUrlForLetter(letter.id);
+    }
     if (isLetterLocked(letter)) {
+      setSelectedLetterForReader(null);
       setLockedLetterForCountdown(letter);
     } else {
+      setLockedLetterForCountdown(null);
       setSelectedLetterForReader(letter);
     }
   };
+
+  const handleCloseLetterReader = () => {
+    setSelectedLetterForReader(null);
+    updateUrlForLetter(null);
+  };
+
+  const handleCloseLetterCountdown = () => {
+    setLockedLetterForCountdown(null);
+    updateUrlForLetter(null);
+  };
+
+  // Deep Link: Automatically open letter if URL has ?letter=... or /letter/...
+  useEffect(() => {
+    if (letters.length === 0) return;
+    const targetLetterId = getLetterIdFromCurrentUrl();
+    if (!targetLetterId) return;
+
+    // Check if that letter is already open
+    if (selectedLetterForReader?.id === targetLetterId || lockedLetterForCountdown?.id === targetLetterId) {
+      return;
+    }
+
+    const matchedLetter = letters.find((l) => l.id === targetLetterId);
+    if (matchedLetter) {
+      handleOpenLetter(matchedLetter, false);
+    }
+  }, [letters]);
+
+  // Support browser back/forward history navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      const letterIdFromUrl = getLetterIdFromCurrentUrl();
+      if (letterIdFromUrl && letters.length > 0) {
+        const matched = letters.find((l) => l.id === letterIdFromUrl);
+        if (matched) {
+          handleOpenLetter(matched, false);
+          return;
+        }
+      }
+      setSelectedLetterForReader(null);
+      setLockedLetterForCountdown(null);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [letters]);
 
   // Handlers for Tickets with Firestore persistence & image safety
   const handleSaveTicket = async (ticket: BoardingTicket) => {
     try {
       let finalTicket = { ...ticket };
 
-      // Ensure photoUrl is compressed if it exceeds 500KB to prevent Firestore 1MB document errors
-      if (finalTicket.photoUrl && finalTicket.photoUrl.startsWith('data:image') && finalTicket.photoUrl.length > 500000) {
+      // Ensure photoUrl is compressed if it exceeds 380KB
+      if (finalTicket.photoUrl && finalTicket.photoUrl.startsWith('data:image') && finalTicket.photoUrl.length > 380000) {
         finalTicket.photoUrl = await compressImage(finalTicket.photoUrl, 900, 900, 0.65);
+      }
+
+      // Ensure galleryPhotos are compressed and deduplicated
+      if (Array.isArray(finalTicket.galleryPhotos) && finalTicket.galleryPhotos.length > 0) {
+        const compressedGallery: string[] = [];
+        for (const photo of finalTicket.galleryPhotos) {
+          if (!photo || photo === finalTicket.photoUrl || compressedGallery.includes(photo)) continue;
+          if (photo.startsWith('data:image') && photo.length > 320000) {
+            compressedGallery.push(await compressImage(photo, 800, 800, 0.6));
+          } else {
+            compressedGallery.push(photo);
+          }
+        }
+        finalTicket.galleryPhotos = compressedGallery;
+      }
+
+      // Enforce Firestore 1MB document limit (~950KB safe threshold)
+      let serialized = JSON.stringify(finalTicket);
+      if (serialized.length > 940000 && Array.isArray(finalTicket.galleryPhotos) && finalTicket.galleryPhotos.length > 0) {
+        const targetPerPhotoBudget = Math.max(40000, Math.floor((880000 - (finalTicket.photoUrl?.length || 0)) / finalTicket.galleryPhotos.length));
+        const quality = targetPerPhotoBudget < 100000 ? 0.45 : 0.55;
+        const maxDim = targetPerPhotoBudget < 100000 ? 540 : 700;
+
+        if (finalTicket.photoUrl && finalTicket.photoUrl.startsWith('data:image') && finalTicket.photoUrl.length > 250000) {
+          finalTicket.photoUrl = await compressImage(finalTicket.photoUrl, 700, 700, 0.55);
+        }
+
+        finalTicket.galleryPhotos = await Promise.all(
+          finalTicket.galleryPhotos.map((p) =>
+            p.startsWith('data:image') ? compressImage(p, maxDim, maxDim, quality) : Promise.resolve(p)
+          )
+        );
+        serialized = JSON.stringify(finalTicket);
+      }
+
+      if (serialized.length > 1000000) {
+        alert('El álbum tiene demasiadas fotos pesadas para un solo boleto. Por favor elimina algunas fotos o súbelas en otro boleto.');
+        return;
       }
 
       // Optimistic local update
@@ -185,7 +275,7 @@ export default function App() {
       });
 
       // Remove undefined values to prevent Firestore errors
-      const sanitizedTicket = JSON.parse(JSON.stringify(finalTicket));
+      const sanitizedTicket = JSON.parse(serialized);
       await setDoc(doc(db, 'tickets', finalTicket.id), sanitizedTicket);
 
       // Also ensure corresponding destination exists and is synced in destinations collection
@@ -437,6 +527,7 @@ export default function App() {
                 onOpenUploadModal={openUploadModal}
                 onEditTicket={undefined}
                 onSwitchToMap={() => scrollToSection('flight-map')}
+                onOpenPhotos={(ticket) => setSelectedTicketIdForPhotos(ticket.id)}
               />
             </section>
 
@@ -486,6 +577,7 @@ export default function App() {
                 setTimeout(() => scrollToSection('tickets-3d'), 100);
               }}
               onOpenUploadModal={(prefill) => openUploadModal(prefill)}
+              onOpenTripPhotos={(ticket) => setSelectedTicketIdForPhotos(ticket.id)}
               onToggleDestination={handleToggleDestination}
               onAddDestination={handleAddDestination}
               onDeleteDestination={handleDeleteDestination}
@@ -535,18 +627,28 @@ export default function App() {
         <LetterReaderModal
           letter={selectedLetterForReader}
           isOpen={!!selectedLetterForReader}
-          onClose={() => setSelectedLetterForReader(null)}
+          onClose={handleCloseLetterReader}
         />
 
         {/* Letter Countdown Lock Modal (Enforces lock until specified date) */}
         <LetterCountdownLockModal
           letter={lockedLetterForCountdown}
           isOpen={!!lockedLetterForCountdown}
-          onClose={() => setLockedLetterForCountdown(null)}
+          onClose={handleCloseLetterCountdown}
           onOpenLetter={(letter) => {
             setLockedLetterForCountdown(null);
             setSelectedLetterForReader(letter);
+            updateUrlForLetter(letter.id);
           }}
+        />
+
+        {/* Trip Photos Gallery Modal (Read-only on main page, upload/delete enabled in Estudio & Gestor) */}
+        <TripPhotosModal
+          ticket={selectedTicketForPhotos}
+          isOpen={!!selectedTicketForPhotos}
+          onClose={() => setSelectedTicketIdForPhotos(null)}
+          onUpdateTicket={handleSaveTicket}
+          canEdit={currentPage === 'manager'}
         />
       </div>
     </div>

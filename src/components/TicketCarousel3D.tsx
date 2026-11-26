@@ -6,8 +6,9 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 interface TicketCarousel3DProps {
   tickets: BoardingTicket[];
   onOpenUploadModal: (prefill?: Partial<BoardingTicket>) => void;
-  onEditTicket: (ticket: BoardingTicket) => void;
+  onEditTicket?: (ticket: BoardingTicket) => void;
   onSwitchToMap?: (ticket?: BoardingTicket) => void;
+  onOpenPhotos?: (ticket: BoardingTicket) => void;
 }
 
 export const TicketCarousel3D: React.FC<TicketCarousel3DProps> = ({
@@ -15,6 +16,7 @@ export const TicketCarousel3D: React.FC<TicketCarousel3DProps> = ({
   onOpenUploadModal,
   onEditTicket,
   onSwitchToMap,
+  onOpenPhotos,
 }) => {
   const [activeIndex, setActiveIndex] = useState<number>(0);
 
@@ -107,7 +109,13 @@ export const TicketCarousel3D: React.FC<TicketCarousel3DProps> = ({
             return (
               <div
                 key={ticket.id}
-                onClick={() => setActiveIndex(index)}
+                onClick={() => {
+                  if (offset === 0) {
+                    onOpenPhotos?.(ticket);
+                  } else {
+                    setActiveIndex(index);
+                  }
+                }}
                 className="absolute transition-all duration-500 ease-out cursor-pointer"
                 style={{
                   transform: transformStyle,
@@ -121,6 +129,7 @@ export const TicketCarousel3D: React.FC<TicketCarousel3DProps> = ({
                   isFocused={offset === 0}
                   onEdit={onEditTicket ? onEditTicket : undefined}
                   onViewOnMap={() => onSwitchToMap?.(ticket)}
+                  onOpenPhotos={onOpenPhotos}
                   showActions={offset === 0}
                 />
               </div>

@@ -1,12 +1,13 @@
 import React from 'react';
 import { BoardingTicket } from '../types';
-import { Edit3, MapPin, Crown, Heart } from 'lucide-react';
+import { Edit3, MapPin, Crown, Heart, Camera } from 'lucide-react';
 
 interface TicketCardProps {
   ticket: BoardingTicket;
   isFocused?: boolean;
   onEdit?: (ticket: BoardingTicket) => void;
   onViewOnMap?: (ticket: BoardingTicket) => void;
+  onOpenPhotos?: (ticket: BoardingTicket) => void;
   className?: string;
   showActions?: boolean;
 }
@@ -16,6 +17,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
   isFocused = false,
   onEdit,
   onViewOnMap,
+  onOpenPhotos,
   className = '',
   showActions = true,
 }) => {
@@ -45,6 +47,17 @@ export const TicketCard: React.FC<TicketCardProps> = ({
     ticket.flightNumber && !ticket.flightNumber.startsWith('SQ')
       ? ticket.flightNumber
       : (ticket.flightNumber?.replace(/^SQ/, 'PA') || 'FLIGHT PA286');
+
+  const totalPhotosCount = React.useMemo(() => {
+    const photos: string[] = [];
+    if (ticket.photoUrl) photos.push(ticket.photoUrl);
+    if (ticket.galleryPhotos && Array.isArray(ticket.galleryPhotos)) {
+      ticket.galleryPhotos.forEach((p) => {
+        if (p && !photos.includes(p)) photos.push(p);
+      });
+    }
+    return photos.length;
+  }, [ticket.photoUrl, ticket.galleryPhotos]);
 
   return (
     <div className={`relative flex flex-col items-center select-none ${className}`}>
@@ -149,12 +162,25 @@ export const TicketCard: React.FC<TicketCardProps> = ({
         {/* Bottom Section: Biometric Photo + Barcodes */}
         <div className="p-4 grid grid-cols-2 gap-3 items-center bg-[#F6F1E5]">
           {/* Passenger Photo Container with warm film aesthetic */}
-          <div className="relative aspect-[4/5] bg-neutral-900 rounded-lg overflow-hidden border-2 border-white shadow-md group">
+          <div
+            onClick={(e) => {
+              if (onOpenPhotos) {
+                e.stopPropagation();
+                onOpenPhotos(ticket);
+              }
+            }}
+            className={`relative aspect-[4/5] bg-neutral-900 rounded-lg overflow-hidden border-2 border-white shadow-md group ${
+              onOpenPhotos ? 'cursor-pointer' : ''
+            }`}
+            title={onOpenPhotos ? 'Toca para ver todas las fotos de este viaje' : undefined}
+          >
             <img
               src={ticket.photoUrl}
               alt={ticket.packageContents}
               referrerPolicy="no-referrer"
-              className={`w-full h-full object-cover ${
+              className={`w-full h-full object-cover transition-transform duration-300 ${
+                onOpenPhotos ? 'group-hover:scale-105' : ''
+              } ${
                 ticket.photoFilter === 'grayscale'
                   ? 'grayscale contrast-125'
                   : ticket.photoFilter === 'contrast'
@@ -169,6 +195,14 @@ export const TicketCard: React.FC<TicketCardProps> = ({
             />
             {/* Halftone / scanline overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+
+            {/* Photo count badge */}
+            {totalPhotosCount > 0 && (
+              <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/70 backdrop-blur-sm text-amber-300 text-[8px] font-mono font-bold border border-white/25 shadow">
+                <Camera className="w-2.5 h-2.5" />
+                <span>{totalPhotosCount}</span>
+              </div>
+            )}
             
             <div className="absolute bottom-1 left-1.5 text-[7px] font-mono font-bold text-white uppercase tracking-widest bg-[#E05A36]/85 px-1.5 py-0.5 rounded">
               VERIFICADO
@@ -244,7 +278,21 @@ export const TicketCard: React.FC<TicketCardProps> = ({
 
       {/* Action shortcuts when card is selected / focused */}
       {showActions && (
-        <div className="mt-3.5 flex items-center gap-2">
+        <div className="mt-3.5 flex flex-wrap items-center justify-center gap-2">
+          {onOpenPhotos && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenPhotos(ticket);
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-[#0E2340] hover:bg-[#17355E] text-white rounded-full text-xs font-mono font-bold tracking-wider transition-all shadow-md cursor-pointer border border-amber-300/40"
+            >
+              <Camera className="w-3.5 h-3.5 text-amber-300" />
+              <span>Ver Fotos ({totalPhotosCount})</span>
+            </button>
+          )}
+
           {onEdit && (
             <button
               type="button"

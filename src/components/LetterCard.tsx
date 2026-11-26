@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LoveLetter } from '../types';
-import { Heart, Crown, Calendar, Sparkles, ArrowRight, Lock, Disc3, Clock } from 'lucide-react';
+import { Heart, Crown, Calendar, Sparkles, ArrowRight, Lock, Disc3, Clock, Link2, Check } from 'lucide-react';
+import { copyLetterUrlToClipboard } from '../utils/letterUrl';
 
 interface LetterCardProps {
   letter: LoveLetter;
@@ -20,6 +21,7 @@ export const LetterCard: React.FC<LetterCardProps> = ({
 }) => {
   const [countdownText, setCountdownText] = useState<string>('');
   const [isLocked, setIsLocked] = useState<boolean>(() => isLetterLocked(letter));
+  const [copiedLink, setCopiedLink] = useState(false);
 
   useEffect(() => {
     if (!letter.isLockedUntilDate || !letter.unlockDate) {
@@ -183,16 +185,48 @@ export const LetterCard: React.FC<LetterCardProps> = ({
           </div>
         </div>
 
-        {/* Recipient & Sender Sign-off */}
+        {/* Recipient & Sender Sign-off + Direct Link Button */}
         <div className="pt-3 border-t border-[#EADFCB] flex flex-wrap items-center justify-between text-xs font-mono text-neutral-600 gap-2">
-          <div>
-            <span className="text-neutral-400">Para: </span>
-            <strong className="text-[#E05A36] font-bold">{letter.recipient}</strong>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <div>
+              <span className="text-neutral-400">Para: </span>
+              <strong className="text-[#E05A36] font-bold">{letter.recipient}</strong>
+            </div>
+            <div>
+              <span className="text-neutral-400">De: </span>
+              <strong className="text-[#0E2340] font-bold">{letter.sender}</strong>
+            </div>
           </div>
-          <div>
-            <span className="text-neutral-400">De: </span>
-            <strong className="text-[#0E2340] font-bold">{letter.sender}</strong>
-          </div>
+
+          <button
+            type="button"
+            onClick={async (e) => {
+              e.stopPropagation();
+              const ok = await copyLetterUrlToClipboard(letter.id);
+              if (ok) {
+                setCopiedLink(true);
+                setTimeout(() => setCopiedLink(false), 2000);
+              }
+            }}
+            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold transition-all cursor-pointer border shadow-2xs ${
+              copiedLink
+                ? 'bg-emerald-600 text-white border-emerald-600'
+                : 'bg-white/90 hover:bg-white text-neutral-700 hover:text-[#0E2340] border-[#EADFCB] hover:border-[#E05A36]'
+            }`}
+            title="Copiar enlace directo de esta carta"
+          >
+            {copiedLink ? (
+              <>
+                <Check className="w-3 h-3 text-white" />
+                <span>¡Copiado!</span>
+              </>
+            ) : (
+              <>
+                <Link2 className="w-3 h-3 text-[#E05A36]" />
+                <span>Enlace</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
