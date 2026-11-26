@@ -2,9 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { TravelLetter } from '../types';
 import {
   DictionaryMode,
+  OnlineWordLookupResult,
   loadBilingualDictionaries,
   areDictionariesLoaded,
-  lookupWordInDictionaries,
+  lookupWordOnline,
   checkTextSpelling,
   getCustomDictionaryWords,
   addWordToCustomDictionary,
@@ -24,6 +25,8 @@ import {
   Heart,
   Loader2,
   Languages,
+  Globe,
+  Volume2,
 } from 'lucide-react';
 
 interface BilingualDictionaryPanelProps {
@@ -36,10 +39,12 @@ export const BilingualDictionaryPanel: React.FC<BilingualDictionaryPanelProps> =
   onEditLetter,
 }) => {
   const [dictReady, setDictReady] = useState<boolean>(areDictionariesLoaded());
-  const [dictError, setDictError] = useState<string | null>(null);
 
-  // Word Lookup state
+  // Online Word Lookup state
   const [lookupQuery, setLookupQuery] = useState('');
+  const [lookupResult, setLookupResult] = useState<OnlineWordLookupResult | null>(null);
+  const [isLookingUp, setIsLookingUp] = useState(false);
+
   const [customWords, setCustomWords] = useState<string[]>(() =>
     getCustomDictionaryWords()
   );
@@ -57,28 +62,47 @@ export const BilingualDictionaryPanel: React.FC<BilingualDictionaryPanelProps> =
     if (!areDictionariesLoaded()) {
       loadBilingualDictionaries()
         .then(() => {
-          if (mounted) {
-            setDictReady(true);
-            setDictError(null);
-          }
+          if (mounted) setDictReady(true);
         })
-        .catch((err) => {
-          if (mounted) {
-            setDictError(
-              err instanceof Error ? err.message : 'Error cargando diccionarios'
-            );
-          }
-        });
+        .catch(() => {});
     }
     return () => {
       mounted = false;
     };
   }, []);
 
-  const lookupResult = useMemo(() => {
-    if (!dictReady) return null;
-    return lookupWordInDictionaries(lookupQuery);
-  }, [lookupQuery, dictReady, customWords]);
+  // Debounced online dictionary lookup
+  useEffect(() => {
+    const trimmed = lookupQuery.trim();
+    if (!trimmed) {
+      setLookupResult(null);
+      setIsLookingUp(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setIsLookingUp(true);
+
+    const timer = setTimeout(() => {
+      lookupWordOnline(trimmed, controller.signal)
+        .then((res) => {
+          if (!controller.signal.aborted) {
+            setLookupResult(res);
+            setIsLookingUp(false);
+          }
+        })
+        .catch((err) => {
+          if ((err as Error)?.name !== 'AbortError') {
+            setIsLookingUp(false);
+          }
+        });
+    }, 380);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [lookupQuery, customWords]);
 
   const auditedLetters = useMemo(() => {
     if (!dictReady) return [];
@@ -110,6 +134,15 @@ export const BilingualDictionaryPanel: React.FC<BilingualDictionaryPanelProps> =
     setCustomWords(updated);
   };
 
+  const handlePlayAudio = (audioUrl: string) => {
+    try {
+      const audio = new Audio(audioUrl);
+      audio.play().catch(() => {});
+    } catch {
+      // Ignore playback errors
+    }
+  };
+
   const handleCopyProofText = async () => {
     if (!proofText.trim()) return;
     try {
@@ -117,7 +150,7 @@ export const BilingualDictionaryPanel: React.FC<BilingualDictionaryPanelProps> =
       setCopiedProof(true);
       setTimeout(() => setCopiedProof(false), 2000);
     } catch {
-      // ignore clipboard errors
+      // Ignore clipboard errors
     }
   };
 
@@ -128,45 +161,42 @@ export const BilingualDictionaryPanel: React.FC<BilingualDictionaryPanelProps> =
         <div>
           <div className="text-xs font-mono font-bold text-[#0E2340] uppercase tracking-wider mb-1 flex items-center gap-1.5">
             <Languages className="w-4 h-4 text-[#E05A36]" />
-            <span>DICCIONARIO BILINGÜE INGLÉS & ESPAÑOL · CORRECTOR ORTOGRÁFICO</span>
+            <span>DICCIONARIO ONLINE INGLÉS & ESPAÑOL · CORRECTOR ORTOGRÁFICO</span>
           </div>
           <h1 className="text-2xl sm:text-4xl font-black font-display tracking-tight text-neutral-900">
-            Diccionario EN / ES y Detector de Errores
+            Diccionario Online EN / ES y Detector de Errores
           </h1>
           <p className="text-sm text-neutral-600 mt-1 max-w-2xl font-sans">
-            Verifica palabras en inglés y español, detecta palabras mal escritas o incorrectas en tus textos y revisa automáticamente tus cartas de amor guardadas.
+            Consulta definiciones reales en línea en inglés y español, escucha pronunciación, detecta palabras mal escritas o incorrectas en tus textos y revisa tus cartas guardadas.
           </p>
         </div>
 
         <div className="shrink-0">
-          {!dictReady && !dictError ? (
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-100 text-amber-900 border border-amber-300 text-xs font-mono font-bold">
-              <Loader2 className="w-4 h-4 animate-spin text-amber-600" />
-              <span>Cargando diccionarios EN + ES...</span>
-            </div>
-          ) : dictError ? (
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-100 text-red-900 border border-red-300 text-xs font-mono font-bold">
-              <AlertTriangle className="w-4 h-4 text-red-600" />
-              <span>{dictError}</span>
-            </div>
-          ) : (
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-mono font-bold">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>Diccionarios English + Español Activos</span>
-            </div>
-          )}
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sky-100 text-sky-900 border border-sky-300 text-xs font-mono font-bold">
+            <Globe className="w-4 h-4 text-sky-600" />
+            <span>Diccionario Online EN + ES Conectado</span>
+          </div>
         </div>
       </div>
 
-      {/* Top Grid: Word Lookup + Personal Dictionary */}
+      {/* Top Grid: Online Word Lookup + Personal Dictionary */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* 1. Word Checker (7 cols) */}
+        {/* 1. Online Word Checker & Definitions (7 cols) */}
         <div className="lg:col-span-7 bg-white border border-neutral-300 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
-          <div className="flex items-center gap-2">
-            <Search className="w-5 h-5 text-[#E05A36]" />
-            <h2 className="text-lg font-bold font-display text-neutral-900">
-              Buscador y Verificador de Palabras (EN / ES)
-            </h2>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Search className="w-5 h-5 text-[#E05A36]" />
+              <h2 className="text-lg font-bold font-display text-neutral-900">
+                Buscador en Diccionario Online (EN / ES)
+              </h2>
+            </div>
+
+            {isLookingUp && (
+              <span className="inline-flex items-center gap-1 text-xs font-mono text-sky-700 font-bold">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Buscando online...
+              </span>
+            )}
           </div>
 
           <div className="relative">
@@ -184,7 +214,7 @@ export const BilingualDictionaryPanel: React.FC<BilingualDictionaryPanelProps> =
           {lookupResult && lookupResult.status !== 'empty' && (
             <div className="p-4 rounded-xl border bg-neutral-50 border-neutral-200 space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="text-lg font-bold font-display text-neutral-900">
                     "{lookupResult.word}"
                   </span>
@@ -205,6 +235,13 @@ export const BilingualDictionaryPanel: React.FC<BilingualDictionaryPanelProps> =
                         : 'En tu diccionario personal'}
                     </span>
                   )}
+
+                  {lookupResult.source === 'online' && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-200 text-[10px] font-mono font-bold">
+                      <Globe className="w-3 h-3" />
+                      Online
+                    </span>
+                  )}
                 </div>
 
                 {lookupResult.status === 'misspelled' && (
@@ -219,7 +256,7 @@ export const BilingualDictionaryPanel: React.FC<BilingualDictionaryPanelProps> =
                 )}
               </div>
 
-              {/* Language Badges */}
+              {/* Language Status Badges */}
               <div className="flex flex-wrap gap-2 text-xs font-mono">
                 <span
                   className={`px-2.5 py-1 rounded-lg border ${
@@ -241,9 +278,82 @@ export const BilingualDictionaryPanel: React.FC<BilingualDictionaryPanelProps> =
                 </span>
               </div>
 
+              {/* Online English Dictionary Entry */}
+              {lookupResult.enEntry && lookupResult.enEntry.meanings.length > 0 && (
+                <div className="p-3 bg-white rounded-xl border border-blue-200 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-xs font-mono font-bold text-blue-900 uppercase">
+                      <span>English Definition</span>
+                      {lookupResult.enEntry.phonetic && (
+                        <span className="text-blue-600 font-normal lowercase">
+                          {lookupResult.enEntry.phonetic}
+                        </span>
+                      )}
+                    </div>
+                    {lookupResult.enEntry.audioUrl && (
+                      <button
+                        type="button"
+                        onClick={() => handlePlayAudio(lookupResult.enEntry!.audioUrl!)}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 text-[11px] font-mono font-bold cursor-pointer"
+                        title="Escuchar pronunciación en inglés"
+                      >
+                        <Volume2 className="w-3.5 h-3.5" />
+                        <span>Audio</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5 text-xs font-sans text-neutral-700">
+                    {lookupResult.enEntry.meanings.slice(0, 2).map((m, idx) => (
+                      <div key={idx}>
+                        <span className="font-mono font-bold text-[10px] uppercase text-blue-700 mr-1.5">
+                          ({m.partOfSpeech})
+                        </span>
+                        <span>{m.definitions[0]?.definition}</span>
+                        {m.definitions[0]?.example && (
+                          <div className="text-[11px] italic text-neutral-500 pl-3 mt-0.5">
+                            "{m.definitions[0].example}"
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Online Spanish Dictionary Entry */}
+              {lookupResult.esEntry &&
+                (lookupResult.esEntry.spanishDefs.length > 0 ||
+                  lookupResult.esEntry.meanings.length > 0) && (
+                  <div className="p-3 bg-white rounded-xl border border-amber-200 space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-mono font-bold text-amber-900 uppercase">
+                      <span>Definición en Español</span>
+                      {lookupResult.esEntry.ipa && (
+                        <span className="text-amber-700 font-normal lowercase">
+                          {lookupResult.esEntry.ipa}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="space-y-1 text-xs font-sans text-neutral-700">
+                      {lookupResult.esEntry.spanishDefs.slice(0, 3).map((def, i) => (
+                        <div key={`sp-${i}`}>• {def}</div>
+                      ))}
+                      {lookupResult.esEntry.spanishDefs.length === 0 &&
+                        lookupResult.esEntry.meanings.slice(0, 2).map((m, idx) => (
+                          <div key={`enm-${idx}`}>
+                            <span className="font-mono font-bold text-[10px] uppercase text-amber-700 mr-1.5">
+                              ({m.partOfSpeech})
+                            </span>
+                            <span>{m.definitions.join('; ')}</span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
               {/* Suggestions */}
-              {(lookupResult.combinedSuggestions.length > 0 ||
-                lookupResult.suggestionsEn.length > 0 ||
+              {(lookupResult.suggestionsEn.length > 0 ||
                 lookupResult.suggestionsEs.length > 0) && (
                 <div className="pt-2 border-t border-neutral-200 space-y-2">
                   {lookupResult.suggestionsEs.length > 0 && (
@@ -307,7 +417,7 @@ export const BilingualDictionaryPanel: React.FC<BilingualDictionaryPanelProps> =
                 Aún no has agregado palabras personalizadas. Cuando el corrector señale un nombre o apodo, presiona "+ Ignorar" o agrégalo arriba.
               </div>
             ) : (
-              <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto">
+              <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto">
                 {customWords.map((word) => (
                   <span
                     key={word}
@@ -330,15 +440,15 @@ export const BilingualDictionaryPanel: React.FC<BilingualDictionaryPanelProps> =
         </div>
       </div>
 
-      {/* 3. Full Text Proofreader */}
+      {/* 3. Full Text Online Proofreader */}
       <div className="bg-white border border-neutral-300 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg sm:text-xl font-bold font-display text-neutral-900">
-              Corrector de Textos Completo (Inglés & Español)
+              Corrector Online de Textos (Inglés & Español)
             </h2>
             <p className="text-xs text-neutral-600 font-sans">
-              Escribe o pega cualquier mensaje o carta. Las palabras mal escritas o incorrectas se señalarán automáticamente con opciones para corregirlas en un clic.
+              Escribe o pega cualquier mensaje o carta. Las palabras mal escritas o errores gramaticales se detectan en línea y se señalan con sugerencias de corrección.
             </p>
           </div>
 
@@ -389,7 +499,7 @@ export const BilingualDictionaryPanel: React.FC<BilingualDictionaryPanelProps> =
           mode={proofMode}
           onChangeMode={setProofMode}
           theme="light"
-          label="Revisión Ortográfica EN / ES"
+          label="Corrector Online EN / ES"
           defaultShowHighlighted={true}
         />
       </div>

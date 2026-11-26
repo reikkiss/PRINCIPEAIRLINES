@@ -5,6 +5,7 @@ import {
   loadBilingualDictionaries,
   areDictionariesLoaded,
   checkTextSpelling,
+  checkTextSpellingOnline,
   applySpellingCorrection,
   autoCorrectAllIssues,
   addWordToCustomDictionary,
@@ -18,6 +19,7 @@ import {
   Eye,
   EyeOff,
   Loader2,
+  Globe,
 } from 'lucide-react';
 
 interface SpellcheckAssistantBarProps {
@@ -37,44 +39,76 @@ export const SpellcheckAssistantBar: React.FC<SpellcheckAssistantBarProps> = ({
   mode,
   onChangeMode,
   showModeSelector = true,
-  label = 'Diccionario EN / ES',
+  label = 'Diccionario Online EN / ES',
   theme = 'dark',
   defaultShowHighlighted = false,
 }) => {
   const [dictReady, setDictReady] = useState<boolean>(areDictionariesLoaded());
-  const [dictError, setDictError] = useState<string | null>(null);
   const [customDictVersion, setCustomDictVersion] = useState(0);
   const [showHighlighted, setShowHighlighted] = useState(defaultShowHighlighted);
   const [activeIssueId, setActiveIssueId] = useState<string | null>(null);
+  const [isCheckingOnline, setIsCheckingOnline] = useState(false);
+  const [onlineIssues, setOnlineIssues] = useState<SpellingIssue[] | null>(null);
+  const [checkSource, setCheckSource] = useState<'online' | 'local'>('online');
 
   useEffect(() => {
     let mounted = true;
     if (!areDictionariesLoaded()) {
       loadBilingualDictionaries()
         .then(() => {
-          if (mounted) {
-            setDictReady(true);
-            setDictError(null);
-          }
+          if (mounted) setDictReady(true);
         })
-        .catch((err) => {
-          if (mounted) {
-            setDictError(
-              err instanceof Error ? err.message : 'Error cargando diccionario'
-            );
-          }
-        });
+        .catch(() => {});
     }
     return () => {
       mounted = false;
     };
   }, []);
 
-  const issues: SpellingIssue[] = useMemo(() => {
+  // Debounced online check via LanguageTool API (EN & ES)
+  useEffect(() => {
+    const trimmed = text.trim();
+    if (!trimmed) {
+      setOnlineIssues([]);
+      setIsCheckingOnline(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setIsCheckingOnline(true);
+
+    const timer = setTimeout(() => {
+      checkTextSpellingOnline(text, mode, controller.signal)
+        .then((result) => {
+          if (!controller.signal.aborted) {
+            setOnlineIssues(result.issues);
+            setCheckSource(result.source);
+            setIsCheckingOnline(false);
+          }
+        })
+        .catch((err) => {
+          if ((err as Error)?.name !== 'AbortError') {
+            setIsCheckingOnline(false);
+          }
+        });
+    }, 550);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [text, mode, customDictVersion]);
+
+  const localIssues: SpellingIssue[] = useMemo(() => {
     if (!dictReady || !text.trim()) return [];
     return checkTextSpelling(text, mode);
-    // customDictVersion triggers re-check immediately when adding words
   }, [text, mode, dictReady, customDictVersion]);
+
+  const issues: SpellingIssue[] = useMemo(() => {
+    if (!text.trim()) return [];
+    if (onlineIssues !== null) return onlineIssues;
+    return localIssues;
+  }, [text, onlineIssues, localIssues]);
 
   const handleReplaceIssue = (issue: SpellingIssue, replacement: string) => {
     const updated = applySpellingCorrection(
@@ -94,14 +128,13 @@ export const SpellcheckAssistantBar: React.FC<SpellcheckAssistantBarProps> = ({
   };
 
   const handleAutoCorrectAll = () => {
-    const { correctedText } = autoCorrectAllIssues(text, mode);
+    const { correctedText } = autoCorrectAllIssues(text, mode, issues);
     if (correctedText !== text) {
       onChangeText(correctedText);
       setActiveIssueId(null);
     }
   };
 
-  // Build highlighted segments for interactive underlined view
   const highlightedSegments = useMemo(() => {
     if (!showHighlighted || issues.length === 0) return null;
 
@@ -149,9 +182,9 @@ export const SpellcheckAssistantBar: React.FC<SpellcheckAssistantBarProps> = ({
           : 'bg-neutral-50 border-neutral-300 text-neutral-900'
       }`}
     >
-      {/* Top Bar: Status + Language Mode + Actions */}
+      {/* Top Bar: Status + Online Indicator + Language Mode + Actions */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-xs font-mono">
+        <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
           <BookOpen
             className={`w-3.5 h-3.5 ${
               isDark ? 'text-amber-300' : 'text-[#E05A36]'
@@ -165,20 +198,28 @@ export const SpellcheckAssistantBar: React.FC<SpellcheckAssistantBarProps> = ({
             {label}
           </span>
 
-          {!dictReady && !dictError && (
+          {isCheckingOnline && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 text-[10px]">
               <Loader2 className="w-3 h-3 animate-spin" />
-              Cargando...
+              Revisando en línea...
             </span>
           )}
 
-          {dictError && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 text-[10px]">
-              {dictError}
+          {!isCheckingOnline && text.trim().length > 0 && checkSource === 'online' && (
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                isDark
+                  ? 'bg-sky-500/15 text-sky-300 border border-sky-500/30'
+                  : 'bg-sky-100 text-sky-800 border border-sky-300'
+              }`}
+              title="Verificado con diccionario y corrector online"
+            >
+              <Globe className="w-3 h-3" />
+              Online
             </span>
           )}
 
-          {dictReady && text.trim().length > 0 && issues.length === 0 && (
+          {!isCheckingOnline && text.trim().length > 0 && issues.length === 0 && (
             <span
               className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
                 isDark
@@ -191,7 +232,7 @@ export const SpellcheckAssistantBar: React.FC<SpellcheckAssistantBarProps> = ({
             </span>
           )}
 
-          {dictReady && issues.length > 0 && (
+          {text.trim().length > 0 && issues.length > 0 && (
             <span
               className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
                 isDark
@@ -308,9 +349,7 @@ export const SpellcheckAssistantBar: React.FC<SpellcheckAssistantBarProps> = ({
               <span key={seg.key} className="relative inline-block">
                 <button
                   type="button"
-                  onClick={() =>
-                    setActiveIssueId(isOpen ? null : issue.id)
-                  }
+                  onClick={() => setActiveIssueId(isOpen ? null : issue.id)}
                   className={`underline decoration-wavy decoration-rose-500 decoration-2 px-0.5 rounded cursor-pointer transition-colors ${
                     isDark
                       ? 'bg-rose-500/20 text-rose-200 hover:bg-rose-500/35'
@@ -322,14 +361,14 @@ export const SpellcheckAssistantBar: React.FC<SpellcheckAssistantBarProps> = ({
 
                 {isOpen && (
                   <div
-                    className={`absolute left-0 top-full mt-1 z-30 min-w-[200px] max-w-[260px] rounded-xl p-2.5 shadow-2xl border text-left font-mono ${
+                    className={`absolute left-0 top-full mt-1 z-30 min-w-[210px] max-w-[280px] rounded-xl p-2.5 shadow-2xl border text-left font-mono ${
                       isDark
                         ? 'bg-[#111827] border-amber-400/40 text-white'
                         : 'bg-white border-neutral-300 text-neutral-900'
                     }`}
                   >
-                    <div className="text-[10px] text-rose-400 font-bold uppercase mb-1.5">
-                      Sugerencias para "{issue.word}":
+                    <div className="text-[10px] text-rose-400 font-bold uppercase mb-1">
+                      {issue.message || `Sugerencias para "${issue.word}"`}:
                     </div>
                     {issue.suggestions.length > 0 ? (
                       <div className="flex flex-wrap gap-1 mb-2">
@@ -370,8 +409,8 @@ export const SpellcheckAssistantBar: React.FC<SpellcheckAssistantBarProps> = ({
       )}
 
       {/* Compact Misspelled Words List with 1-Click Fixes */}
-      {dictReady && issues.length > 0 && (
-        <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+      {issues.length > 0 && (
+        <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
           {issues.map((issue) => (
             <div
               key={issue.id}
@@ -400,7 +439,11 @@ export const SpellcheckAssistantBar: React.FC<SpellcheckAssistantBarProps> = ({
                             ? 'bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-300 border border-emerald-500/30'
                             : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300'
                         }`}
-                        title={`Reemplazar "${issue.word}" por "${sug}"`}
+                        title={
+                          issue.message
+                            ? `${issue.message} — Reemplazar por "${sug}"`
+                            : `Reemplazar "${issue.word}" por "${sug}"`
+                        }
                       >
                         {sug}
                       </button>
@@ -412,7 +455,7 @@ export const SpellcheckAssistantBar: React.FC<SpellcheckAssistantBarProps> = ({
                       isDark ? 'text-white/50' : 'text-neutral-500'
                     }`}
                   >
-                    Palabra no encontrada en EN/ES
+                    {issue.message || 'Palabra no encontrada en EN/ES'}
                   </span>
                 )}
               </div>
